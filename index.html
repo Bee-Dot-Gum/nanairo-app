@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>なないろ菜・マイクロハーブ 発注システム</title>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'nanairo': {
+                            light: '#e6f4ea', // 薄い緑 (背景等)
+                            DEFAULT: '#4ade80', // メインの緑
+                            dark: '#16a34a', // 濃い緑 (ボタン等)
+                        },
+                        'nanairo-accent': '#f97316', // アクセントカラー(オレンジ - 残りわずか等)
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* スクロールバーを隠す (iOSライクなUIのため) */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            background-color: #f3f4f6; /* 全体の背景色（LIFF外の領域） */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            /* iOSでのタップハイライトを無効化 */
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* スマホ画面を模したコンテナ */
+        .app-container {
+            max-width: 430px; /* iPhone Pro Max程度の幅 */
+            margin: 0 auto;
+            background-color: white;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* アニメーション用 */
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- モックデータ ---
+        const USER_DATA = {
+            restaurantName: "庄内イタリアン 〇〇",
+            date: "2026.05.09 発注"
+        };
+
+        const PAST_ORDERS = [
+            {
+                id: 'ord-001',
+                date: '2026.05.02 (前回)',
+                items: { 'p1': 2, 'p4': 1, 'p5': 3 },
+            }
+        ];
+
+        const PRODUCTS_DATA = [
+            { id: 'p1', name: 'なないろ菜', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('なないろ菜')}` },
+            { id: 'p2', name: 'デトロイト', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('デトロイト')}` },
+            { id: 'p3', name: 'アマランサス', price: 400, unit: 'P', stock: '残りわずか', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('アマランサス')}` },
+            { id: 'p4', name: 'レッドラディッシュ', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('レッドラディッシュ')}` },
+            { id: 'p5', name: '青じそ', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('青じそ')}` },
+            { id: 'p6', name: '赤じそ', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('赤じそ')}` },
+            { id: 'p7', name: 'ひまわり', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('ひまわり')}` },
+            { id: 'p8', name: 'レッドケール', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('レッドケール')}` },
+            { id: 'p9', name: 'ペッパークレス', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('ペッパークレス')}` },
+            { id: 'p10', name: 'マスタード', price: 400, unit: 'P', stock: '残りわずか', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('マスタード')}` },
+            { id: 'p11', name: 'ロケット', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('ロケット')}` },
+            { id: 'p12', name: 'にんじん', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('にんじん')}` },
+        ];
+
+        // --- コンポーネント ---
+
+        function App() {
+            // カートの状態
+            const [cart, setCart] = useState({});
+            // 確認画面の表示状態
+            const [showConfirm, setShowConfirm] = useState(false);
+            // 完了画面の表示状態
+            const [showComplete, setShowComplete] = useState(false);
+            // 履歴モーダルの表示状態
+            const [showHistory, setShowHistory] = useState(false);
+            
+            // フォーム入力の状態
+            const [pickupDate, setPickupDate] = useState("");
+            const [pickupTime, setPickupTime] = useState("11:00-12:00");
+            const [memo, setMemo] = useState("");
+
+            useEffect(() => {
+                // アイコンの初期化
+                lucide.createIcons();
+            });
+
+            // 数量変更ハンドラ
+            const updateQuantity = (productId, delta) => {
+                setCart(prev => {
+                    const current = prev[productId] || 0;
+                    const next = Math.max(0, current + delta);
+                    const newCart = { ...prev };
+                    if (next === 0) {
+                        delete newCart[productId];
+                    } else {
+                        newCart[productId] = next;
+                    }
+                    return newCart;
+                });
+            };
+
+            // 特定の数量にセットするハンドラ (カートに追加ボタン用)
+            const setQuantity = (productId, amount) => {
+                setCart(prev => ({ ...prev, [productId]: amount }));
+            };
+
+            // カートの合計計算
+            const cartSummary = useMemo(() => {
+                let totalItems = 0;
+                let totalPrice = 0;
+                
+                Object.entries(cart).forEach(([id, quantity]) => {
+                    const product = PRODUCTS_DATA.find(p => p.id === id);
+                    if (product) {
+                        totalItems += quantity;
+                        totalPrice += product.price * quantity;
+                    }
+                });
+                
+                return { totalItems, totalPrice };
+            }, [cart]);
+
+            // 履歴からコピーする関数
+            const copyFromHistory = (items) => {
+                setCart(items);
+                setShowHistory(false);
+            };
+
+            // ★変更箇所：GASへの送信処理
+            const handleOrderSubmit = async () => {
+                // 1. カートの中身を文字列にする
+                const orderItemsString = Object.entries(cart).map(([id, qty]) => {
+                    const p = PRODUCTS_DATA.find(p => p.id === id);
+                    return `${p.name} × ${qty}`;
+                }).join('\n');
+
+                // 2. GASに送るデータ
+                const payload = {
+                    userId: USER_DATA.restaurantName,
+                    orderItems: orderItemsString,
+                    pickupDate: pickupDate,
+                    pickupTime: pickupTime,
+                    memo: memo || "なし",
+                    totalPrice: cartSummary.totalPrice
+                };
+
+                try {
+                    // 3. GASのURLへデータを送信
+                    const gasUrl = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
+
+                    await fetch(gasUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        body: JSON.stringify(payload)
+                    });
+
+                    // 4. 送信成功したら、完了画面を表示
+                    setShowConfirm(false);
+                    setShowComplete(true);
+                    
+                } catch (error) {
+                    console.error("送信エラー:", error);
+                    alert("注文の送信に失敗しました。電波の良いところで再度お試しください。");
+                }
+            };
+
+            return (
+                <div className="app-container pb-24">
+                    
+                    {/* --- ヘッダー --- */}
+                    <header className="sticky top-0 z-20 bg-nanairo-light px-4 py-3 flex justify-between items-center shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-xs">LINE</div>
+                            <span className="font-bold text-gray-800 text-sm">なないろ菜・マイクロハーブ</span>
+                        </div>
+                        <i data-lucide="x" className="w-5 h-5 text-gray-500"></i>
+                    </header>
+
+                    {/* --- メインコンテンツ --- */}
+                    <main className="flex-1 overflow-y-auto bg-white px-4 py-4 space-y-6">
+                        
+                        {/* ユーザー情報・日付 */}
+                        <div className="flex justify-between items-end border-b border-gray-200 pb-2 mb-4">
+                            <h2 className="text-lg font-bold text-gray-800">{USER_DATA.restaurantName}様</h2>
+                            <span className="text-sm text-gray-600">{USER_DATA.date}</span>
+                        </div>
+
+                        {/* すべての商品 */}
+                        <section>
+                            <div className="flex justify-between items-end mb-3">
+                                <h3 className="font-bold text-gray-800">商品一覧</h3>
+                                <button 
+                                    onClick={() => setShowHistory(true)}
+                                    className="text-sm text-nanairo-dark font-bold flex items-center gap-1 active:opacity-70"
+                                >
+                                    <i data-lucide="history" className="w-4 h-4"></i>
+                                    注文履歴を見る
+                                </button>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                                {PRODUCTS_DATA.map(product => {
+                                    const qty = cart[product.id] || 0;
+                                    const isLowStock = product.stock === '残りわずか';
+
+                                    return (
+                                        <div key={product.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                                            {/* 画像エリア */}
+                                            <div className="relative h-28 bg-gray-100">
+                                                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                                            </div>
+                                            
+                                            {/* 情報エリア */}
+                                            <div className="p-2 flex-1 flex flex-col">
+                                                <h4 className="text-sm font-bold text-gray-800 leading-tight mb-1 line-clamp-2">{product.name}</h4>
+                                                <div className="flex justify-between items-baseline mt-auto">
+                                                    <span className="font-bold text-gray-900">¥{product.price}</span>
+                                                    <span className="text-xs text-gray-500">/{product.unit}</span>
+                                                </div>
+                                                <div className="text-xs mt-1 font-medium">
+                                                    在庫: <span className={isLowStock ? 'text-nanairo-accent' : 'text-gray-600'}>{product.stock}</span>
+                                                </div>
+
+                                                {/* アクションボタン */}
+                                                <div className="mt-2 h-8">
+                                                    {qty === 0 ? (
+                                                        <button 
+                                                            onClick={() => setQuantity(product.id, 1)}
+                                                            className={`w-full h-full rounded-md text-sm font-bold transition-colors ${
+                                                                isLowStock 
+                                                                    ? 'bg-orange-100 text-nanairo-accent active:bg-nanairo-accent active:text-white' 
+                                                                    : 'bg-nanairo-dark text-white active:bg-green-700'
+                                                            }`}
+                                                        >
+                                                            カートに追加
+                                                        </button>
+                                                    ) : (
+                                                        <div className="flex items-center justify-between bg-gray-100 rounded-md h-full px-1">
+                                                            <button 
+                                                                onClick={() => updateQuantity(product.id, -1)}
+                                                                className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"
+                                                            >
+                                                                <i data-lucide="minus" className="w-4 h-4"></i>
+                                                            </button>
+                                                            <span className="font-bold text-sm w-6 text-center">{qty}</span>
+                                                            <button 
+                                                                onClick={() => updateQuantity(product.id, 1)}
+                                                                className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"
+                                                            >
+                                                                <i data-lucide="plus" className="w-4 h-4"></i>
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    </main>
+
+                    {/* --- フローティングフッター (カートボタン) --- */}
+                    {cartSummary.totalItems > 0 && !showConfirm && !showComplete && (
+                        <div className="fixed bottom-0 w-full max-w-[430px] p-4 bg-white/90 backdrop-blur border-t border-gray-100 z-30 animate-slide-up">
+                            <button 
+                                onClick={() => setShowConfirm(true)}
+                                className="w-full bg-[#759fbf] text-white rounded-full py-3.5 px-4 flex justify-between items-center font-bold shadow-lg active:bg-[#5c809a] transition-colors"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <i data-lucide="shopping-cart" className="w-5 h-5"></i>
+                                    <span>カートを見る</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-normal">合計 {cartSummary.totalItems}点</span>
+                                    <span className="text-lg">¥{cartSummary.totalPrice.toLocaleString()}</span>
+                                </div>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* --- 注文確認モーダル --- */}
+                    {showConfirm && (
+                        <div className="absolute inset-0 bg-black/50 z-40 flex flex-col justify-end">
+                            <div className="bg-white rounded-t-3xl w-full max-h-[85vh] flex flex-col animate-slide-up">
+                                <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-3xl z-10">
+                                    <h2 className="font-bold text-lg">注文内容の確認</h2>
+                                    <button onClick={() => setShowConfirm(false)} className="p-1 bg-gray-100 rounded-full">
+                                        <i data-lucide="x" className="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                                
+                                <div className="overflow-y-auto p-4 flex-1">
+                                    <div className="space-y-4">
+                                        {Object.entries(cart).map(([id, qty]) => {
+                                            const p = PRODUCTS_DATA.find(p => p.id === id);
+                                            return (
+                                                <div key={id} className="flex justify-between items-center">
+                                                    <div>
+                                                        <p className="font-bold text-sm">{p.name}</p>
+                                                        <p className="text-xs text-gray-500">¥{p.price} × {qty}{p.unit}</p>
+                                                    </div>
+                                                    <p className="font-bold text-gray-900">¥{(p.price * qty).toLocaleString()}</p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    
+                                    <div className="mt-6 border-t pt-4 space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">ご来店予定日 <span className="text-red-500">*</span></label>
+                                            <input 
+                                                type="date" 
+                                                value={pickupDate}
+                                                onChange={(e) => setPickupDate(e.target.value)}
+                                                className="w-full border border-gray-300 rounded-lg p-2.5 text-base focus:ring-2 focus:ring-nanairo-dark focus:border-nanairo-dark outline-none"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">ご来店時間帯 <span className="text-red-500">*</span></label>
+                                            <select 
+                                                value={pickupTime}
+                                                onChange={(e) => setPickupTime(e.target.value)}
+                                                className="w-full border border-gray-300 rounded-lg p-2.5 text-base focus:ring-2 focus:ring-nanairo-dark focus:border-nanairo-dark outline-none bg-white"
+                                            >
+                                                <option value="11:00-12:00">11:00 - 12:00</option>
+                                                <option value="12:00-13:00">12:00 - 13:00</option>
+                                                <option value="13:00-14:00">13:00 - 14:00</option>
+                                                <option value="14:00-15:00">14:00 - 15:00</option>
+                                                <option value="15:00-16:00">15:00 - 16:00</option>
+                                                <option value="16:00-17:00">16:00 - 17:00</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">備考欄 (任意)</label>
+                                            <textarea 
+                                                value={memo}
+                                                onChange={(e) => setMemo(e.target.value)}
+                                                placeholder="ご要望があればご記入ください"
+                                                className="w-full border border-gray-300 rounded-lg p-2.5 text-base h-20 resize-none focus:ring-2 focus:ring-nanairo-dark focus:border-nanairo-dark outline-none"
+                                            ></textarea>
+                                        </div>
+
+                                        <div className="flex justify-between items-end mt-4 pt-4 border-t">
+                                            <span className="font-bold text-gray-800">総合計 (税込)</span>
+                                            <span className="text-2xl font-bold text-gray-900">¥{cartSummary.totalPrice.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 border-t sticky bottom-0 bg-white">
+                                    <button 
+                                        onClick={handleOrderSubmit}
+                                        disabled={!pickupDate}
+                                        className={`w-full rounded-xl py-4 font-bold text-lg shadow-lg transition-colors ${
+                                            pickupDate 
+                                                ? 'bg-nanairo-dark text-white active:bg-green-700' 
+                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {pickupDate ? 'この内容で予約する' : '来店予定日を入力してください'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* --- 履歴モーダル --- */}
+                    {showHistory && (
+                        <div className="absolute inset-0 bg-black/50 z-50 flex flex-col justify-end">
+                            <div className="bg-white rounded-t-3xl w-full max-h-[80vh] flex flex-col animate-slide-up">
+                                <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-3xl z-10">
+                                    <h2 className="font-bold text-lg">過去の注文履歴</h2>
+                                    <button onClick={() => setShowHistory(false)} className="p-1 bg-gray-100 rounded-full">
+                                        <i data-lucide="x" className="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                                <div className="overflow-y-auto p-4 flex-1 space-y-4 pb-12">
+                                    {PAST_ORDERS.map(order => {
+                                        let total = 0;
+                                        return (
+                                            <div key={order.id} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                                                <div className="font-bold text-gray-800 mb-2 border-b pb-2">{order.date} の注文</div>
+                                                <ul className="text-sm text-gray-600 space-y-1 mb-4">
+                                                    {Object.entries(order.items).map(([id, qty]) => {
+                                                        const p = PRODUCTS_DATA.find(p => p.id === id);
+                                                        if (p) total += p.price * qty;
+                                                        return p ? <li key={id}>{p.name} × {qty}</li> : null;
+                                                    })}
+                                                </ul>
+                                                <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
+                                                    <span className="font-bold text-gray-900">合計: ¥{total.toLocaleString()}</span>
+                                                    <button 
+                                                        onClick={() => copyFromHistory(order.items)}
+                                                        className="bg-nanairo-dark text-white px-4 py-2 rounded-lg font-bold text-sm active:bg-green-700"
+                                                    >
+                                                        再注文する
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* --- 完了画面 --- */}
+                    {showComplete && (
+                        <div className="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center">
+                            <div className="w-20 h-20 bg-green-100 text-nanairo-dark rounded-full flex items-center justify-center mb-6">
+                                <i data-lucide="check" className="w-10 h-10"></i>
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">ご予約完了しました</h2>
+                            <p className="text-gray-600 mb-2">公式LINEへ予約内容を通知しました。<br/>ご来店をお待ちしております。</p>
+                            <p className="text-sm text-gray-500 mb-8 bg-gray-50 p-4 rounded-lg w-full">
+                                【お受け取り日時】<br/>
+                                <span className="font-bold text-gray-800 text-base">{pickupDate} {pickupTime}</span>
+                            </p>
+                            
+                            <button 
+                                onClick={() => {
+                                    setShowComplete(false);
+                                    setCart({});
+                                    setPickupDate("");
+                                    setMemo("");
+                                    // 実際はここで liff.closeWindow() を呼ぶ
+                                    alert('LIFFウィンドウを閉じます');
+                                }}
+                                className="w-full bg-gray-800 text-white rounded-xl py-4 font-bold text-lg active:bg-gray-900 transition-colors"
+                            >
+                                トーク画面に戻る
+                            </button>
+                        </div>
+                    )}
+
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
