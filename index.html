@@ -13,6 +13,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- ★追加: LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
     <script>
         tailwind.config = {
@@ -20,33 +22,27 @@
                 extend: {
                     colors: {
                         'nanairo': {
-                            light: '#e6f4ea', // 薄い緑 (背景等)
-                            DEFAULT: '#4ade80', // メインの緑
-                            dark: '#16a34a', // 濃い緑 (ボタン等)
+                            light: '#e6f4ea',
+                            DEFAULT: '#4ade80',
+                            dark: '#16a34a',
                         },
-                        'nanairo-accent': '#f97316', // アクセントカラー(オレンジ - 残りわずか等)
+                        'nanairo-accent': '#f97316',
                     }
                 }
             }
         }
     </script>
     <style>
-        /* スクロールバーを隠す (iOSライクなUIのため) */
-        ::-webkit-scrollbar {
-            display: none;
-        }
+        ::-webkit-scrollbar { display: none; }
         body {
             -ms-overflow-style: none;
             scrollbar-width: none;
-            background-color: #f3f4f6; /* 全体の背景色（LIFF外の領域） */
+            background-color: #f3f4f6;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            /* iOSでのタップハイライトを無効化 */
             -webkit-tap-highlight-color: transparent;
         }
-        
-        /* スマホ画面を模したコンテナ */
         .app-container {
-            max-width: 430px; /* iPhone Pro Max程度の幅 */
+            max-width: 430px;
             margin: 0 auto;
             background-color: white;
             min-height: 100vh;
@@ -55,8 +51,6 @@
             display: flex;
             flex-direction: column;
         }
-
-        /* アニメーション用 */
         @keyframes slideUp {
             from { transform: translateY(100%); }
             to { transform: translateY(0); }
@@ -71,12 +65,6 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
-
-        // --- モックデータ ---
-        const USER_DATA = {
-            restaurantName: "庄内イタリアン 〇〇",
-            date: "2026.05.09 発注"
-        };
 
         const PAST_ORDERS = [
             {
@@ -101,29 +89,54 @@
             { id: 'p12', name: 'にんじん', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('にんじん')}` },
         ];
 
-        // --- コンポーネント ---
-
         function App() {
-            // カートの状態
+            // ★追加: ユーザー情報（LINEから取得）
+            const [userName, setUserName] = useState("ゲスト");
+            const [userId, setUserId] = useState("");
+            const [isLiffReady, setIsLiffReady] = useState(false);
+
             const [cart, setCart] = useState({});
-            // 確認画面の表示状態
             const [showConfirm, setShowConfirm] = useState(false);
-            // 完了画面の表示状態
             const [showComplete, setShowComplete] = useState(false);
-            // 履歴モーダルの表示状態
             const [showHistory, setShowHistory] = useState(false);
             
-            // フォーム入力の状態
             const [pickupDate, setPickupDate] = useState("");
             const [pickupTime, setPickupTime] = useState("11:00-12:00");
             const [memo, setMemo] = useState("");
 
-            useEffect(() => {
-                // アイコンの初期化
-                lucide.createIcons();
-            });
+            // 今日の日付を取得して表示用にする
+            const today = new Date();
+            const todayString = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')} 発注`;
 
-            // 数量変更ハンドラ
+            useEffect(() => {
+                lucide.createIcons();
+                
+                // ★追加: LIFFの初期化処理
+                liff.init({ liffId: "2010021938-R9EhB5rj" }) // ここに教えていただいたLIFF IDをセットしました！
+                    .then(() => {
+                        if (!liff.isLoggedIn()) {
+                            // LINE外ブラウザの場合はログインを促す（テスト時など）
+                            liff.login();
+                        } else {
+                            // ログイン済みならプロフィールを取得
+                            liff.getProfile()
+                                .then(profile => {
+                                    setUserName(profile.displayName);
+                                    setUserId(profile.userId);
+                                    setIsLiffReady(true);
+                                })
+                                .catch((err) => {
+                                    console.log('プロフィール取得失敗', err);
+                                    setIsLiffReady(true);
+                                });
+                        }
+                    })
+                    .catch((err) => {
+                        console.log('LIFF Initialization failed', err);
+                        setIsLiffReady(true); // エラーでもとりあえず画面は表示する
+                    });
+            }, []); // 空の配列を渡すことで初回のみ実行
+
             const updateQuantity = (productId, delta) => {
                 setCart(prev => {
                     const current = prev[productId] || 0;
@@ -138,16 +151,13 @@
                 });
             };
 
-            // 特定の数量にセットするハンドラ (カートに追加ボタン用)
             const setQuantity = (productId, amount) => {
                 setCart(prev => ({ ...prev, [productId]: amount }));
             };
 
-            // カートの合計計算
             const cartSummary = useMemo(() => {
                 let totalItems = 0;
                 let totalPrice = 0;
-                
                 Object.entries(cart).forEach(([id, quantity]) => {
                     const product = PRODUCTS_DATA.find(p => p.id === id);
                     if (product) {
@@ -155,27 +165,22 @@
                         totalPrice += product.price * quantity;
                     }
                 });
-                
                 return { totalItems, totalPrice };
             }, [cart]);
 
-            // 履歴からコピーする関数
             const copyFromHistory = (items) => {
                 setCart(items);
                 setShowHistory(false);
             };
 
-            // ★変更箇所：GASへの送信処理
             const handleOrderSubmit = async () => {
-                // 1. カートの中身を文字列にする
                 const orderItemsString = Object.entries(cart).map(([id, qty]) => {
                     const p = PRODUCTS_DATA.find(p => p.id === id);
                     return `${p.name} × ${qty}`;
                 }).join('\n');
 
-                // 2. GASに送るデータ
                 const payload = {
-                    userId: USER_DATA.restaurantName,
+                    userId: userName, // ★変更: 取得したLINEの名前に変更
                     orderItems: orderItemsString,
                     pickupDate: pickupDate,
                     pickupTime: pickupTime,
@@ -184,7 +189,6 @@
                 };
 
                 try {
-                    // 3. GASのURLへデータを送信
                     const gasUrl = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
 
                     await fetch(gasUrl, {
@@ -193,7 +197,6 @@
                         body: JSON.stringify(payload)
                     });
 
-                    // 4. 送信成功したら、完了画面を表示
                     setShowConfirm(false);
                     setShowComplete(true);
                     
@@ -206,25 +209,22 @@
             return (
                 <div className="app-container pb-24">
                     
-                    {/* --- ヘッダー --- */}
                     <header className="sticky top-0 z-20 bg-nanairo-light px-4 py-3 flex justify-between items-center shadow-sm">
                         <div className="flex items-center gap-2">
                             <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-xs">LINE</div>
                             <span className="font-bold text-gray-800 text-sm">なないろ菜・マイクロハーブ</span>
                         </div>
-                        <i data-lucide="x" className="w-5 h-5 text-gray-500"></i>
+                        <i data-lucide="x" className="w-5 h-5 text-gray-500" onClick={() => liff.closeWindow()}></i>
                     </header>
 
-                    {/* --- メインコンテンツ --- */}
                     <main className="flex-1 overflow-y-auto bg-white px-4 py-4 space-y-6">
                         
-                        {/* ユーザー情報・日付 */}
                         <div className="flex justify-between items-end border-b border-gray-200 pb-2 mb-4">
-                            <h2 className="text-lg font-bold text-gray-800">{USER_DATA.restaurantName}様</h2>
-                            <span className="text-sm text-gray-600">{USER_DATA.date}</span>
+                            {/* ★変更: 取得したLINEの名前を表示 */}
+                            <h2 className="text-lg font-bold text-gray-800">{isLiffReady ? `${userName}様` : "読み込み中..."}</h2>
+                            <span className="text-sm text-gray-600">{todayString}</span>
                         </div>
 
-                        {/* すべての商品 */}
                         <section>
                             <div className="flex justify-between items-end mb-3">
                                 <h3 className="font-bold text-gray-800">商品一覧</h3>
@@ -244,12 +244,10 @@
 
                                     return (
                                         <div key={product.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
-                                            {/* 画像エリア */}
                                             <div className="relative h-28 bg-gray-100">
                                                 <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                                             </div>
                                             
-                                            {/* 情報エリア */}
                                             <div className="p-2 flex-1 flex flex-col">
                                                 <h4 className="text-sm font-bold text-gray-800 leading-tight mb-1 line-clamp-2">{product.name}</h4>
                                                 <div className="flex justify-between items-baseline mt-auto">
@@ -260,7 +258,6 @@
                                                     在庫: <span className={isLowStock ? 'text-nanairo-accent' : 'text-gray-600'}>{product.stock}</span>
                                                 </div>
 
-                                                {/* アクションボタン */}
                                                 <div className="mt-2 h-8">
                                                     {qty === 0 ? (
                                                         <button 
@@ -299,7 +296,6 @@
                         </section>
                     </main>
 
-                    {/* --- フローティングフッター (カートボタン) --- */}
                     {cartSummary.totalItems > 0 && !showConfirm && !showComplete && (
                         <div className="fixed bottom-0 w-full max-w-[430px] p-4 bg-white/90 backdrop-blur border-t border-gray-100 z-30 animate-slide-up">
                             <button 
@@ -318,7 +314,6 @@
                         </div>
                     )}
 
-                    {/* --- 注文確認モーダル --- */}
                     {showConfirm && (
                         <div className="absolute inset-0 bg-black/50 z-40 flex flex-col justify-end">
                             <div className="bg-white rounded-t-3xl w-full max-h-[85vh] flex flex-col animate-slide-up">
@@ -406,7 +401,6 @@
                         </div>
                     )}
 
-                    {/* --- 履歴モーダル --- */}
                     {showHistory && (
                         <div className="absolute inset-0 bg-black/50 z-50 flex flex-col justify-end">
                             <div className="bg-white rounded-t-3xl w-full max-h-[80vh] flex flex-col animate-slide-up">
@@ -446,7 +440,6 @@
                         </div>
                     )}
 
-                    {/* --- 完了画面 --- */}
                     {showComplete && (
                         <div className="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center">
                             <div className="w-20 h-20 bg-green-100 text-nanairo-dark rounded-full flex items-center justify-center mb-6">
@@ -465,8 +458,8 @@
                                     setCart({});
                                     setPickupDate("");
                                     setMemo("");
-                                    // 実際はここで liff.closeWindow() を呼ぶ
-                                    alert('LIFFウィンドウを閉じます');
+                                    // ★変更: LIFFの機能を使ってウィンドウを閉じる
+                                    liff.closeWindow();
                                 }}
                                 className="w-full bg-gray-800 text-white rounded-xl py-4 font-bold text-lg active:bg-gray-900 transition-colors"
                             >
