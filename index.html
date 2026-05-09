@@ -4,16 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>なないろ菜・マイクロハーブ 発注システム</title>
-    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- ★追加: LIFF SDK -->
+    <!-- ★LIFF SDKを読み込む -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
     <script>
@@ -21,11 +17,7 @@
             theme: {
                 extend: {
                     colors: {
-                        'nanairo': {
-                            light: '#e6f4ea',
-                            DEFAULT: '#4ade80',
-                            dark: '#16a34a',
-                        },
+                        'nanairo': { light: '#e6f4ea', DEFAULT: '#4ade80', dark: '#16a34a' },
                         'nanairo-accent': '#f97316',
                     }
                 }
@@ -35,44 +27,25 @@
     <style>
         ::-webkit-scrollbar { display: none; }
         body {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-            background-color: #f3f4f6;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -ms-overflow-style: none; scrollbar-width: none;
+            background-color: #f3f4f6; font-family: -apple-system, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
         .app-container {
-            max-width: 430px;
-            margin: 0 auto;
-            background-color: white;
-            min-height: 100vh;
-            position: relative;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            display: flex;
-            flex-direction: column;
+            max-width: 430px; margin: 0 auto; background-color: white;
+            min-height: 100vh; position: relative; display: flex; flex-direction: column;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
-        .animate-slide-up {
-            animation: slideUp 0.3s ease-out forwards;
-        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
     </style>
 </head>
 <body>
     <div id="root"></div>
-
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        const PAST_ORDERS = [
-            {
-                id: 'ord-001',
-                date: '2026.05.02 (前回)',
-                items: { 'p1': 2, 'p4': 1, 'p5': 3 },
-            }
-        ];
+        const PAST_ORDERS = []; // 今は空にしておきます
 
         const PRODUCTS_DATA = [
             { id: 'p1', name: 'なないろ菜', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('なないろ菜')}` },
@@ -90,8 +63,8 @@
         ];
 
         function App() {
-            // ★追加: ユーザー情報（LINEから取得）
-            const [userName, setUserName] = useState("ゲスト");
+            // ★LINEから取得するユーザー情報
+            const [userName, setUserName] = useState("読み込み中...");
             const [userId, setUserId] = useState("");
             const [isLiffReady, setIsLiffReady] = useState(false);
 
@@ -104,74 +77,51 @@
             const [pickupTime, setPickupTime] = useState("11:00-12:00");
             const [memo, setMemo] = useState("");
 
-            // 今日の日付を取得して表示用にする
-            const today = new Date();
-            const todayString = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')} 発注`;
-
             useEffect(() => {
                 lucide.createIcons();
-                
-                // ★追加: LIFFの初期化処理
-                liff.init({ liffId: "2010021938-R9EhB5rj" }) // ここに教えていただいたLIFF IDをセットしました！
+                // ★LIFFの初期化処理
+                liff.init({ liffId: "2010021938-R9EhB5rj" })
                     .then(() => {
-                        if (!liff.isLoggedIn()) {
-                            // LINE外ブラウザの場合はログインを促す（テスト時など）
-                            liff.login();
+                        if (liff.isLoggedIn()) {
+                            liff.getProfile().then(profile => {
+                                setUserName(profile.displayName);
+                                setUserId(profile.userId); // 送信用の裏側IDを取得
+                                setIsLiffReady(true);
+                            });
                         } else {
-                            // ログイン済みならプロフィールを取得
-                            liff.getProfile()
-                                .then(profile => {
-                                    setUserName(profile.displayName);
-                                    setUserId(profile.userId);
-                                    setIsLiffReady(true);
-                                })
-                                .catch((err) => {
-                                    console.log('プロフィール取得失敗', err);
-                                    setIsLiffReady(true);
-                                });
+                            setUserName("ゲスト");
+                            setIsLiffReady(true);
                         }
                     })
-                    .catch((err) => {
-                        console.log('LIFF Initialization failed', err);
-                        setIsLiffReady(true); // エラーでもとりあえず画面は表示する
+                    .catch(err => {
+                        console.error('LIFF init failed', err);
+                        setUserName("ゲスト(エラー)");
+                        setIsLiffReady(true);
                     });
-            }, []); // 空の配列を渡すことで初回のみ実行
+            });
 
             const updateQuantity = (productId, delta) => {
                 setCart(prev => {
-                    const current = prev[productId] || 0;
-                    const next = Math.max(0, current + delta);
+                    const next = Math.max(0, (prev[productId] || 0) + delta);
                     const newCart = { ...prev };
-                    if (next === 0) {
-                        delete newCart[productId];
-                    } else {
-                        newCart[productId] = next;
-                    }
+                    if (next === 0) delete newCart[productId];
+                    else newCart[productId] = next;
                     return newCart;
                 });
             };
 
-            const setQuantity = (productId, amount) => {
-                setCart(prev => ({ ...prev, [productId]: amount }));
-            };
+            const setQuantity = (productId, amount) => setCart(prev => ({ ...prev, [productId]: amount }));
 
             const cartSummary = useMemo(() => {
-                let totalItems = 0;
-                let totalPrice = 0;
+                let totalItems = 0, totalPrice = 0;
                 Object.entries(cart).forEach(([id, quantity]) => {
                     const product = PRODUCTS_DATA.find(p => p.id === id);
-                    if (product) {
-                        totalItems += quantity;
-                        totalPrice += product.price * quantity;
-                    }
+                    if (product) { totalItems += quantity; totalPrice += product.price * quantity; }
                 });
                 return { totalItems, totalPrice };
             }, [cart]);
 
-            const copyFromHistory = (items) => {
-                setCart(items);
-                setShowHistory(false);
-            };
+            const copyFromHistory = (items) => { setCart(items); setShowHistory(false); };
 
             const handleOrderSubmit = async () => {
                 const orderItemsString = Object.entries(cart).map(([id, qty]) => {
@@ -180,7 +130,8 @@
                 }).join('\n');
 
                 const payload = {
-                    userId: userName, // ★変更: 取得したLINEの名前に変更
+                    userName: userName, // お名前
+                    userId: userId,     // 裏側の送信先ID
                     orderItems: orderItemsString,
                     pickupDate: pickupDate,
                     pickupTime: pickupTime,
@@ -190,50 +141,44 @@
 
                 try {
                     const gasUrl = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
-
                     await fetch(gasUrl, {
                         method: "POST",
                         headers: { "Content-Type": "text/plain;charset=utf-8" },
                         body: JSON.stringify(payload)
                     });
-
                     setShowConfirm(false);
                     setShowComplete(true);
-                    
                 } catch (error) {
                     console.error("送信エラー:", error);
-                    alert("注文の送信に失敗しました。電波の良いところで再度お試しください。");
+                    alert("送信に失敗しました。");
                 }
+            };
+
+            const closeApp = () => {
+                if (liff.isLoggedIn()) { liff.closeWindow(); } else { alert('LIFFウィンドウを閉じます'); }
             };
 
             return (
                 <div className="app-container pb-24">
-                    
                     <header className="sticky top-0 z-20 bg-nanairo-light px-4 py-3 flex justify-between items-center shadow-sm">
                         <div className="flex items-center gap-2">
                             <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-xs">LINE</div>
                             <span className="font-bold text-gray-800 text-sm">なないろ菜・マイクロハーブ</span>
                         </div>
-                        <i data-lucide="x" className="w-5 h-5 text-gray-500" onClick={() => liff.closeWindow()}></i>
+                        <i data-lucide="x" className="w-5 h-5 text-gray-500" onClick={closeApp}></i>
                     </header>
 
                     <main className="flex-1 overflow-y-auto bg-white px-4 py-4 space-y-6">
-                        
                         <div className="flex justify-between items-end border-b border-gray-200 pb-2 mb-4">
-                            {/* ★変更: 取得したLINEの名前を表示 */}
-                            <h2 className="text-lg font-bold text-gray-800">{isLiffReady ? `${userName}様` : "読み込み中..."}</h2>
-                            <span className="text-sm text-gray-600">{todayString}</span>
+                            <h2 className="text-lg font-bold text-gray-800">{userName}様</h2>
+                            <span className="text-sm text-gray-600">本日のご注文</span>
                         </div>
 
                         <section>
                             <div className="flex justify-between items-end mb-3">
                                 <h3 className="font-bold text-gray-800">商品一覧</h3>
-                                <button 
-                                    onClick={() => setShowHistory(true)}
-                                    className="text-sm text-nanairo-dark font-bold flex items-center gap-1 active:opacity-70"
-                                >
-                                    <i data-lucide="history" className="w-4 h-4"></i>
-                                    注文履歴を見る
+                                <button onClick={() => setShowHistory(true)} className="text-sm text-nanairo-dark font-bold flex items-center gap-1 active:opacity-70">
+                                    <i data-lucide="history" className="w-4 h-4"></i>注文履歴を見る
                                 </button>
                             </div>
                             
@@ -241,50 +186,24 @@
                                 {PRODUCTS_DATA.map(product => {
                                     const qty = cart[product.id] || 0;
                                     const isLowStock = product.stock === '残りわずか';
-
                                     return (
                                         <div key={product.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
-                                            <div className="relative h-28 bg-gray-100">
-                                                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                                            </div>
-                                            
+                                            <div className="relative h-28 bg-gray-100"><img src={product.image} alt={product.name} className="w-full h-full object-cover" /></div>
                                             <div className="p-2 flex-1 flex flex-col">
                                                 <h4 className="text-sm font-bold text-gray-800 leading-tight mb-1 line-clamp-2">{product.name}</h4>
                                                 <div className="flex justify-between items-baseline mt-auto">
                                                     <span className="font-bold text-gray-900">¥{product.price}</span>
                                                     <span className="text-xs text-gray-500">/{product.unit}</span>
                                                 </div>
-                                                <div className="text-xs mt-1 font-medium">
-                                                    在庫: <span className={isLowStock ? 'text-nanairo-accent' : 'text-gray-600'}>{product.stock}</span>
-                                                </div>
-
+                                                <div className="text-xs mt-1 font-medium">在庫: <span className={isLowStock ? 'text-nanairo-accent' : 'text-gray-600'}>{product.stock}</span></div>
                                                 <div className="mt-2 h-8">
                                                     {qty === 0 ? (
-                                                        <button 
-                                                            onClick={() => setQuantity(product.id, 1)}
-                                                            className={`w-full h-full rounded-md text-sm font-bold transition-colors ${
-                                                                isLowStock 
-                                                                    ? 'bg-orange-100 text-nanairo-accent active:bg-nanairo-accent active:text-white' 
-                                                                    : 'bg-nanairo-dark text-white active:bg-green-700'
-                                                            }`}
-                                                        >
-                                                            カートに追加
-                                                        </button>
+                                                        <button onClick={() => setQuantity(product.id, 1)} className={`w-full h-full rounded-md text-sm font-bold transition-colors ${isLowStock ? 'bg-orange-100 text-nanairo-accent' : 'bg-nanairo-dark text-white'}`}>カートに追加</button>
                                                     ) : (
                                                         <div className="flex items-center justify-between bg-gray-100 rounded-md h-full px-1">
-                                                            <button 
-                                                                onClick={() => updateQuantity(product.id, -1)}
-                                                                className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"
-                                                            >
-                                                                <i data-lucide="minus" className="w-4 h-4"></i>
-                                                            </button>
+                                                            <button onClick={() => updateQuantity(product.id, -1)} className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"><i data-lucide="minus" className="w-4 h-4"></i></button>
                                                             <span className="font-bold text-sm w-6 text-center">{qty}</span>
-                                                            <button 
-                                                                onClick={() => updateQuantity(product.id, 1)}
-                                                                className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"
-                                                            >
-                                                                <i data-lucide="plus" className="w-4 h-4"></i>
-                                                            </button>
+                                                            <button onClick={() => updateQuantity(product.id, 1)} className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"><i data-lucide="plus" className="w-4 h-4"></i></button>
                                                         </div>
                                                     )}
                                                 </div>
@@ -298,18 +217,9 @@
 
                     {cartSummary.totalItems > 0 && !showConfirm && !showComplete && (
                         <div className="fixed bottom-0 w-full max-w-[430px] p-4 bg-white/90 backdrop-blur border-t border-gray-100 z-30 animate-slide-up">
-                            <button 
-                                onClick={() => setShowConfirm(true)}
-                                className="w-full bg-[#759fbf] text-white rounded-full py-3.5 px-4 flex justify-between items-center font-bold shadow-lg active:bg-[#5c809a] transition-colors"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <i data-lucide="shopping-cart" className="w-5 h-5"></i>
-                                    <span>カートを見る</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-sm font-normal">合計 {cartSummary.totalItems}点</span>
-                                    <span className="text-lg">¥{cartSummary.totalPrice.toLocaleString()}</span>
-                                </div>
+                            <button onClick={() => setShowConfirm(true)} className="w-full bg-[#759fbf] text-white rounded-full py-3.5 px-4 flex justify-between items-center font-bold shadow-lg active:bg-[#5c809a] transition-colors">
+                                <div className="flex items-center gap-2"><i data-lucide="shopping-cart" className="w-5 h-5"></i><span>カートを見る</span></div>
+                                <div className="flex items-center gap-3"><span className="text-sm font-normal">合計 {cartSummary.totalItems}点</span><span className="text-lg">¥{cartSummary.totalPrice.toLocaleString()}</span></div>
                             </button>
                         </div>
                     )}
@@ -319,81 +229,43 @@
                             <div className="bg-white rounded-t-3xl w-full max-h-[85vh] flex flex-col animate-slide-up">
                                 <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-3xl z-10">
                                     <h2 className="font-bold text-lg">注文内容の確認</h2>
-                                    <button onClick={() => setShowConfirm(false)} className="p-1 bg-gray-100 rounded-full">
-                                        <i data-lucide="x" className="w-5 h-5"></i>
-                                    </button>
+                                    <button onClick={() => setShowConfirm(false)} className="p-1 bg-gray-100 rounded-full"><i data-lucide="x" className="w-5 h-5"></i></button>
                                 </div>
-                                
                                 <div className="overflow-y-auto p-4 flex-1">
                                     <div className="space-y-4">
                                         {Object.entries(cart).map(([id, qty]) => {
                                             const p = PRODUCTS_DATA.find(p => p.id === id);
                                             return (
                                                 <div key={id} className="flex justify-between items-center">
-                                                    <div>
-                                                        <p className="font-bold text-sm">{p.name}</p>
-                                                        <p className="text-xs text-gray-500">¥{p.price} × {qty}{p.unit}</p>
-                                                    </div>
+                                                    <div><p className="font-bold text-sm">{p.name}</p><p className="text-xs text-gray-500">¥{p.price} × {qty}{p.unit}</p></div>
                                                     <p className="font-bold text-gray-900">¥{(p.price * qty).toLocaleString()}</p>
                                                 </div>
                                             );
                                         })}
                                     </div>
-                                    
                                     <div className="mt-6 border-t pt-4 space-y-4">
                                         <div>
                                             <label className="block text-sm font-bold text-gray-700 mb-1">ご来店予定日 <span className="text-red-500">*</span></label>
-                                            <input 
-                                                type="date" 
-                                                value={pickupDate}
-                                                onChange={(e) => setPickupDate(e.target.value)}
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 text-base focus:ring-2 focus:ring-nanairo-dark focus:border-nanairo-dark outline-none"
-                                            />
+                                            <input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-base focus:ring-2 focus:ring-nanairo-dark outline-none" />
                                         </div>
-
                                         <div>
                                             <label className="block text-sm font-bold text-gray-700 mb-1">ご来店時間帯 <span className="text-red-500">*</span></label>
-                                            <select 
-                                                value={pickupTime}
-                                                onChange={(e) => setPickupTime(e.target.value)}
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 text-base focus:ring-2 focus:ring-nanairo-dark focus:border-nanairo-dark outline-none bg-white"
-                                            >
-                                                <option value="11:00-12:00">11:00 - 12:00</option>
-                                                <option value="12:00-13:00">12:00 - 13:00</option>
-                                                <option value="13:00-14:00">13:00 - 14:00</option>
-                                                <option value="14:00-15:00">14:00 - 15:00</option>
-                                                <option value="15:00-16:00">15:00 - 16:00</option>
-                                                <option value="16:00-17:00">16:00 - 17:00</option>
+                                            <select value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-base focus:ring-2 focus:ring-nanairo-dark outline-none bg-white">
+                                                <option value="11:00-12:00">11:00 - 12:00</option><option value="12:00-13:00">12:00 - 13:00</option><option value="13:00-14:00">13:00 - 14:00</option><option value="14:00-15:00">14:00 - 15:00</option><option value="15:00-16:00">15:00 - 16:00</option><option value="16:00-17:00">16:00 - 17:00</option>
                                             </select>
                                         </div>
-
                                         <div>
                                             <label className="block text-sm font-bold text-gray-700 mb-1">備考欄 (任意)</label>
-                                            <textarea 
-                                                value={memo}
-                                                onChange={(e) => setMemo(e.target.value)}
-                                                placeholder="ご要望があればご記入ください"
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 text-base h-20 resize-none focus:ring-2 focus:ring-nanairo-dark focus:border-nanairo-dark outline-none"
-                                            ></textarea>
+                                            <textarea value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="ご要望があればご記入ください" className="w-full border border-gray-300 rounded-lg p-2.5 text-base h-20 resize-none focus:ring-2 focus:ring-nanairo-dark outline-none"></textarea>
                                         </div>
-
                                         <div className="flex justify-between items-end mt-4 pt-4 border-t">
                                             <span className="font-bold text-gray-800">総合計 (税込)</span>
                                             <span className="text-2xl font-bold text-gray-900">¥{cartSummary.totalPrice.toLocaleString()}</span>
                                         </div>
                                     </div>
                                 </div>
-
                                 <div className="p-4 border-t sticky bottom-0 bg-white">
-                                    <button 
-                                        onClick={handleOrderSubmit}
-                                        disabled={!pickupDate}
-                                        className={`w-full rounded-xl py-4 font-bold text-lg shadow-lg transition-colors ${
-                                            pickupDate 
-                                                ? 'bg-nanairo-dark text-white active:bg-green-700' 
-                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        }`}
-                                    >
+                                    <button onClick={handleOrderSubmit} disabled={!pickupDate} className={`w-full rounded-xl py-4 font-bold text-lg shadow-lg transition-colors ${pickupDate ? 'bg-nanairo-dark text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
                                         {pickupDate ? 'この内容で予約する' : '来店予定日を入力してください'}
                                     </button>
                                 </div>
@@ -406,12 +278,10 @@
                             <div className="bg-white rounded-t-3xl w-full max-h-[80vh] flex flex-col animate-slide-up">
                                 <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-3xl z-10">
                                     <h2 className="font-bold text-lg">過去の注文履歴</h2>
-                                    <button onClick={() => setShowHistory(false)} className="p-1 bg-gray-100 rounded-full">
-                                        <i data-lucide="x" className="w-5 h-5"></i>
-                                    </button>
+                                    <button onClick={() => setShowHistory(false)} className="p-1 bg-gray-100 rounded-full"><i data-lucide="x" className="w-5 h-5"></i></button>
                                 </div>
                                 <div className="overflow-y-auto p-4 flex-1 space-y-4 pb-12">
-                                    {PAST_ORDERS.map(order => {
+                                    {PAST_ORDERS.length === 0 ? <p className="text-gray-500 text-center py-4">履歴はありません</p> : PAST_ORDERS.map(order => {
                                         let total = 0;
                                         return (
                                             <div key={order.id} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
@@ -425,12 +295,7 @@
                                                 </ul>
                                                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
                                                     <span className="font-bold text-gray-900">合計: ¥{total.toLocaleString()}</span>
-                                                    <button 
-                                                        onClick={() => copyFromHistory(order.items)}
-                                                        className="bg-nanairo-dark text-white px-4 py-2 rounded-lg font-bold text-sm active:bg-green-700"
-                                                    >
-                                                        再注文する
-                                                    </button>
+                                                    <button onClick={() => copyFromHistory(order.items)} className="bg-nanairo-dark text-white px-4 py-2 rounded-lg font-bold text-sm">再注文する</button>
                                                 </div>
                                             </div>
                                         )
@@ -442,32 +307,13 @@
 
                     {showComplete && (
                         <div className="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center">
-                            <div className="w-20 h-20 bg-green-100 text-nanairo-dark rounded-full flex items-center justify-center mb-6">
-                                <i data-lucide="check" className="w-10 h-10"></i>
-                            </div>
+                            <div className="w-20 h-20 bg-green-100 text-nanairo-dark rounded-full flex items-center justify-center mb-6"><i data-lucide="check" className="w-10 h-10"></i></div>
                             <h2 className="text-2xl font-bold text-gray-900 mb-2">ご予約完了しました</h2>
                             <p className="text-gray-600 mb-2">公式LINEへ予約内容を通知しました。<br/>ご来店をお待ちしております。</p>
-                            <p className="text-sm text-gray-500 mb-8 bg-gray-50 p-4 rounded-lg w-full">
-                                【お受け取り日時】<br/>
-                                <span className="font-bold text-gray-800 text-base">{pickupDate} {pickupTime}</span>
-                            </p>
-                            
-                            <button 
-                                onClick={() => {
-                                    setShowComplete(false);
-                                    setCart({});
-                                    setPickupDate("");
-                                    setMemo("");
-                                    // ★変更: LIFFの機能を使ってウィンドウを閉じる
-                                    liff.closeWindow();
-                                }}
-                                className="w-full bg-gray-800 text-white rounded-xl py-4 font-bold text-lg active:bg-gray-900 transition-colors"
-                            >
-                                トーク画面に戻る
-                            </button>
+                            <p className="text-sm text-gray-500 mb-8 bg-gray-50 p-4 rounded-lg w-full">【お受け取り日時】<br/><span className="font-bold text-gray-800 text-base">{pickupDate} {pickupTime}</span></p>
+                            <button onClick={closeApp} className="w-full bg-gray-800 text-white rounded-xl py-4 font-bold text-lg">トーク画面に戻る</button>
                         </div>
                     )}
-
                 </div>
             );
         }
