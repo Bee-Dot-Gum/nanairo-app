@@ -8,7 +8,8 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- ★Lucideの外部読み込みを削除し、クラッシュを防止します -->
+    
     <!-- ★LIFF SDKを読み込む -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
@@ -51,6 +52,17 @@
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
+
+        // ★クラッシュ防止用：アイコンを直接定義（デザインは元の綺麗な状態を維持します）
+        const Icons = {
+            X: ({className, onClick}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} onClick={onClick}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+            History: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>,
+            Minus: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/></svg>,
+            Plus: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+            ShoppingCart: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.1-5.38a.5.5 0 0 0-.49-.6h-15.1"/></svg>,
+            Store: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12v0a2 2 0 0 1-2-2V7"/></svg>,
+            Check: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 6 9 17l-5-5"/></svg>
+        };
 
         const PRODUCTS_DATA = [
             { id: 'p1', name: 'なないろ菜', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('なないろ菜')}` },
@@ -121,11 +133,6 @@
                         setIsLiffReady(true);
                     });
             }, []);
-
-            // 画面が切り替わるたびにLucideアイコンを再描画
-            useEffect(() => {
-                lucide.createIcons();
-            });
 
             const updateQuantity = (productId, delta) => {
                 setCart(prev => {
@@ -247,9 +254,9 @@
                                                                 <button onClick={() => setQuantity(product.id, 1)} className={`w-full h-full rounded-md text-sm font-bold transition-colors ${isLowStock ? 'bg-orange-100 text-nanairo-accent' : 'bg-nanairo-dark text-white'}`}>カートに追加</button>
                                                             ) : (
                                                                 <div className="flex items-center justify-between bg-gray-100 rounded-md h-full px-1">
-                                                                    <button onClick={() => updateQuantity(product.id, -1)} className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"><i data-lucide="minus" className="w-4 h-4"></i></button>
+                                                                    <button onClick={() => updateQuantity(product.id, -1)} className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"><Icons.Minus className="w-4 h-4" /></button>
                                                                     <span className="font-bold text-sm w-6 text-center">{qty}</span>
-                                                                    <button onClick={() => updateQuantity(product.id, 1)} className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"><i data-lucide="plus" className="w-4 h-4"></i></button>
+                                                                    <button onClick={() => updateQuantity(product.id, 1)} className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"><Icons.Plus className="w-4 h-4" /></button>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -264,7 +271,7 @@
                             // 履歴タブ
                             <div className="pb-20">
                                 <h2 className="font-bold text-lg text-gray-800 mb-4 flex items-center gap-2">
-                                    <i data-lucide="history" className="w-5 h-5 text-nanairo-dark"></i>過去の注文履歴
+                                    <Icons.History className="w-5 h-5 text-nanairo-dark" />過去の注文履歴
                                 </h2>
                                 <div className="space-y-3">
                                     {pastOrders.length === 0 ? (
@@ -297,7 +304,7 @@
                     {cartSummary.totalItems > 0 && !showConfirm && !showComplete && (
                         <div className="fixed bottom-14 w-full max-w-[430px] p-3 z-30 animate-slide-up pb-safe">
                             <button onClick={() => setShowConfirm(true)} className="w-full bg-[#759fbf] text-white rounded-xl py-3 px-4 flex justify-between items-center font-bold shadow-lg active:bg-[#5c809a] transition-colors">
-                                <div className="flex items-center gap-2"><i data-lucide="shopping-cart" className="w-5 h-5"></i><span>カートを確認する</span></div>
+                                <div className="flex items-center gap-2"><Icons.ShoppingCart className="w-5 h-5" /><span>カートを確認する</span></div>
                                 <div className="flex items-center gap-3"><span className="text-sm font-normal">{cartSummary.totalItems}点</span><span className="text-lg">¥{cartSummary.totalPrice.toLocaleString()}</span></div>
                             </button>
                         </div>
@@ -306,11 +313,11 @@
                     {/* 下部ナビゲーションタブ */}
                     <div className="fixed bottom-0 w-full max-w-[430px] bg-white border-t border-gray-200 flex h-14 z-20 pb-safe">
                         <button onClick={() => setActiveTab('home')} className={`flex-1 flex flex-col items-center justify-center gap-0.5 ${activeTab === 'home' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
-                            <i data-lucide="store" className="w-5 h-5"></i>
+                            <Icons.Store className="w-5 h-5" />
                             <span className="text-[10px] font-bold">ショップ</span>
                         </button>
                         <button onClick={() => setActiveTab('history')} className={`flex-1 flex flex-col items-center justify-center gap-0.5 ${activeTab === 'history' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
-                            <i data-lucide="history" className="w-5 h-5"></i>
+                            <Icons.History className="w-5 h-5" />
                             <span className="text-[10px] font-bold">注文履歴</span>
                         </button>
                     </div>
@@ -320,8 +327,8 @@
                         <div className="absolute inset-0 bg-black/50 z-40 flex flex-col justify-end">
                             <div className="bg-white rounded-t-2xl w-full max-h-[90vh] flex flex-col animate-slide-up">
                                 <div className="px-4 py-3 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-2xl z-10 shrink-0">
-                                    <h2 className="font-bold text-base flex items-center gap-2"><i data-lucide="shopping-cart" className="w-5 h-5"></i>ご注文内容</h2>
-                                    <button onClick={() => setShowConfirm(false)} className="p-1 bg-gray-100 rounded-full"><i data-lucide="x" className="w-5 h-5"></i></button>
+                                    <h2 className="font-bold text-base flex items-center gap-2"><Icons.ShoppingCart className="w-5 h-5" />ご注文内容</h2>
+                                    <button onClick={() => setShowConfirm(false)} className="p-1 bg-gray-100 rounded-full"><Icons.X className="w-5 h-5" /></button>
                                 </div>
                                 <div className="overflow-y-auto p-4 flex-1">
                                     {/* カートのアイテム */}
@@ -386,7 +393,7 @@
                     {/* 完了画面 */}
                     {showComplete && (
                         <div className="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center pb-safe">
-                            <div className="w-20 h-20 bg-green-100 text-nanairo-dark rounded-full flex items-center justify-center mb-6"><i data-lucide="check" className="w-10 h-10"></i></div>
+                            <div className="w-20 h-20 bg-green-100 text-nanairo-dark rounded-full flex items-center justify-center mb-6"><Icons.Check className="w-10 h-10" /></div>
                             <h2 className="text-2xl font-bold text-gray-900 mb-2">ご注文完了しました</h2>
                             <p className="text-gray-600 mb-2 text-sm">公式LINEへ内容を通知しました。<br/>ご来店をお待ちしております。</p>
                             <div className="bg-gray-50 p-4 rounded-lg w-full mb-8">
