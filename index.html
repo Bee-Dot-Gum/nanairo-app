@@ -8,8 +8,6 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- ★Lucideの外部読み込みを削除し、クラッシュを防止します -->
-    
     <!-- ★LIFF SDKを読み込む -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
@@ -53,7 +51,7 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // ★クラッシュ防止用：アイコンを直接定義（デザインは元の綺麗な状態を維持します）
+        // ★クラッシュ防止用：アイコンを直接定義
         const Icons = {
             X: ({className, onClick}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} onClick={onClick}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
             History: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>,
@@ -64,29 +62,29 @@
             Check: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 6 9 17l-5-5"/></svg>
         };
 
+        // ★文字化け修正：プレースホルダー画像のテキストを英語にしました
         const PRODUCTS_DATA = [
-            { id: 'p1', name: 'なないろ菜', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('なないろ菜')}` },
-            { id: 'p2', name: 'デトロイト', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('デトロイト')}` },
-            { id: 'p3', name: 'アマランサス', price: 400, unit: 'P', stock: '残りわずか', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('アマランサス')}` },
-            { id: 'p4', name: 'レッドラディッシュ', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('レッドラディッシュ')}` },
-            { id: 'p5', name: '青じそ', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('青じそ')}` },
-            { id: 'p6', name: '赤じそ', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('赤じそ')}` },
-            { id: 'p7', name: 'ひまわり', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('ひまわり')}` },
-            { id: 'p8', name: 'レッドケール', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('レッドケール')}` },
-            { id: 'p9', name: 'ペッパークレス', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('ペッパークレス')}` },
-            { id: 'p10', name: 'マスタード', price: 400, unit: 'P', stock: '残りわずか', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('マスタード')}` },
-            { id: 'p11', name: 'ロケット', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('ロケット')}` },
-            { id: 'p12', name: 'にんじん', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('にんじん')}` },
+            { id: 'p1', name: 'なないろ菜', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Nanairo` },
+            { id: 'p2', name: 'デトロイト', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Detroit` },
+            { id: 'p3', name: 'アマランサス', price: 400, unit: 'P', stock: '残りわずか', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Amaranth` },
+            { id: 'p4', name: 'レッドラディッシュ', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Radish` },
+            { id: 'p5', name: '青じそ', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Aojiso` },
+            { id: 'p6', name: '赤じそ', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Akajiso` },
+            { id: 'p7', name: 'ひまわり', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Sunflower` },
+            { id: 'p8', name: 'レッドケール', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Kale` },
+            { id: 'p9', name: 'ペッパークレス', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Cress` },
+            { id: 'p10', name: 'マスタード', price: 400, unit: 'P', stock: '残りわずか', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Mustard` },
+            { id: 'p11', name: 'ロケット', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Rocket` },
+            { id: 'p12', name: 'にんじん', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Carrot` },
         ];
 
         function App() {
-            // ★LINEから取得するユーザー情報
             const [userName, setUserName] = useState("読み込み中...");
             const [userId, setUserId] = useState("");
             const [isLiffReady, setIsLiffReady] = useState(false);
 
-            const [activeTab, setActiveTab] = useState('home'); // 下部タブ用（'home' または 'history'）
-            const [pastOrders, setPastOrders] = useState([]); // 履歴用
+            const [activeTab, setActiveTab] = useState('home');
+            const [pastOrders, setPastOrders] = useState([]);
 
             const [cart, setCart] = useState({});
             const [showConfirm, setShowConfirm] = useState(false);
@@ -96,19 +94,15 @@
             const [pickupTime, setPickupTime] = useState("11:00-12:00");
             const [memo, setMemo] = useState("");
             
-            const [isSubmitting, setIsSubmitting] = useState(false); // ★連打防止フラグ
+            const [isSubmitting, setIsSubmitting] = useState(false);
 
-            // 初期化処理
             useEffect(() => {
-                // 履歴をローカルストレージから読み込む
                 const savedHistory = JSON.parse(localStorage.getItem('nanairo_history') || '[]');
                 setPastOrders(savedHistory);
 
-                // 日付の初期値を今日にセット
                 const today = new Date().toISOString().split('T')[0];
                 setPickupDate(today);
 
-                // LIFFの初期化
                 liff.init({ liffId: "2010021938-R9EhB5rj" })
                     .then(() => {
                         if (liff.isLoggedIn()) {
@@ -118,7 +112,6 @@
                                 setIsLiffReady(true);
                             });
                         } else {
-                            // ★プレビューの点滅を防止（LINEアプリ内でのみ自動ログイン）
                             if (liff.isInClient()) {
                                 liff.login();
                             } else {
@@ -161,8 +154,8 @@
             };
 
             const handleOrderSubmit = async () => {
-                if (isSubmitting) return; // 連打防止
-                setIsSubmitting(true);    // 送信中フラグをON
+                if (isSubmitting) return;
+                setIsSubmitting(true);
 
                 const orderItemsString = Object.entries(cart).map(([id, qty]) => {
                     const p = PRODUCTS_DATA.find(p => p.id === id);
@@ -187,24 +180,23 @@
                         body: JSON.stringify(payload)
                     });
                     
-                    // 送信成功時：履歴に保存
                     const newHistory = [{
                         id: Date.now(),
                         date: new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute:'2-digit' }),
                         items: cart
-                    }, ...pastOrders].slice(0, 20); // 最新20件を保持
+                    }, ...pastOrders].slice(0, 20);
                     
                     localStorage.setItem('nanairo_history', JSON.stringify(newHistory));
                     setPastOrders(newHistory);
 
                     setShowConfirm(false);
                     setShowComplete(true);
-                    setCart({}); // カートを空にする
+                    setCart({});
                 } catch (error) {
                     console.error("送信エラー:", error);
                     alert("送信に失敗しました。電波の良いところで再度お試しください。");
                 } finally {
-                    setIsSubmitting(false); // 送信中フラグをOFF
+                    setIsSubmitting(false);
                 }
             };
 
@@ -213,18 +205,15 @@
             };
 
             return (
-                <div className="app-container pb-14"> {/* 下部タブの分の余白 */}
+                <div className="app-container pb-14">
                     
-                    {/* ヘッダー */}
                     <header className="sticky top-0 z-20 bg-nanairo-light px-4 py-3 flex justify-between items-center shadow-sm">
                         <div className="flex items-center gap-2">
                             <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-xs">LINE</div>
                             <span className="font-bold text-gray-800 text-sm">なないろ菜・マイクロハーブ</span>
                         </div>
-                        {/* 不要になった×ボタンを削除しました */}
                     </header>
 
-                    {/* メインコンテンツ（タブで切り替え） */}
                     <main className="flex-1 overflow-y-auto bg-white px-4 py-4 space-y-4">
                         {activeTab === 'home' ? (
                             <>
@@ -235,7 +224,7 @@
 
                                 <section>
                                     <h3 className="font-bold text-gray-800 mb-3">商品一覧</h3>
-                                    <div className="grid grid-cols-2 gap-3 pb-20"> {/* カートボタン分の余白 */}
+                                    <div className="grid grid-cols-2 gap-3 pb-20">
                                         {PRODUCTS_DATA.map(product => {
                                             const qty = cart[product.id] || 0;
                                             const isLowStock = product.stock === '残りわずか';
@@ -268,7 +257,6 @@
                                 </section>
                             </>
                         ) : (
-                            // 履歴タブ
                             <div className="pb-20">
                                 <h2 className="font-bold text-lg text-gray-800 mb-4 flex items-center gap-2">
                                     <Icons.History className="w-5 h-5 text-nanairo-dark" />過去の注文履歴
@@ -300,9 +288,8 @@
                         )}
                     </main>
 
-                    {/* カートを見るフローティングボタン */}
                     {cartSummary.totalItems > 0 && !showConfirm && !showComplete && (
-                        <div className="fixed bottom-14 w-full max-w-[430px] p-3 z-30 animate-slide-up pb-safe">
+                        <div className="fixed bottom-14 w-full max-w-[430px] p-3 z-30 animate-slide-up pb-safe left-1/2 -translate-x-1/2">
                             <button onClick={() => setShowConfirm(true)} className="w-full bg-[#759fbf] text-white rounded-xl py-3 px-4 flex justify-between items-center font-bold shadow-lg active:bg-[#5c809a] transition-colors">
                                 <div className="flex items-center gap-2"><Icons.ShoppingCart className="w-5 h-5" /><span>カートを確認する</span></div>
                                 <div className="flex items-center gap-3"><span className="text-sm font-normal">{cartSummary.totalItems}点</span><span className="text-lg">¥{cartSummary.totalPrice.toLocaleString()}</span></div>
@@ -310,8 +297,7 @@
                         </div>
                     )}
 
-                    {/* 下部ナビゲーションタブ */}
-                    <div className="fixed bottom-0 w-full max-w-[430px] bg-white border-t border-gray-200 flex h-14 z-20 pb-safe">
+                    <div className="fixed bottom-0 w-full max-w-[430px] bg-white border-t border-gray-200 flex h-14 z-20 pb-safe left-1/2 -translate-x-1/2">
                         <button onClick={() => setActiveTab('home')} className={`flex-1 flex flex-col items-center justify-center gap-0.5 ${activeTab === 'home' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
                             <Icons.Store className="w-5 h-5" />
                             <span className="text-[10px] font-bold">ショップ</span>
@@ -322,16 +308,15 @@
                         </button>
                     </div>
 
-                    {/* 注文確認・カートモーダル（余白を削減） */}
+                    {/* ★真っ白問題解消：fixed と items-center でどんなスクロール位置でも画面ぴったりに表示させます */}
                     {showConfirm && (
-                        <div className="absolute inset-0 bg-black/50 z-40 flex flex-col justify-end">
-                            <div className="bg-white rounded-t-2xl w-full max-h-[90vh] flex flex-col animate-slide-up">
+                        <div className="fixed inset-0 bg-black/50 z-40 flex flex-col justify-end items-center">
+                            <div className="bg-white rounded-t-2xl w-full max-w-[430px] max-h-[90vh] flex flex-col animate-slide-up">
                                 <div className="px-4 py-3 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-2xl z-10 shrink-0">
                                     <h2 className="font-bold text-base flex items-center gap-2"><Icons.ShoppingCart className="w-5 h-5" />ご注文内容</h2>
                                     <button onClick={() => setShowConfirm(false)} className="p-1 bg-gray-100 rounded-full"><Icons.X className="w-5 h-5" /></button>
                                 </div>
                                 <div className="overflow-y-auto p-4 flex-1">
-                                    {/* カートのアイテム */}
                                     <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-gray-100 mb-3">
                                         {Object.entries(cart).map(([id, qty]) => {
                                             const p = PRODUCTS_DATA.find(p => p.id === id);
@@ -351,7 +336,6 @@
                                         </div>
                                     </div>
 
-                                    {/* フォーム部分の余白を詰める */}
                                     <div className="space-y-3">
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 mb-1">ご来店予定日 <span className="text-red-500">*</span></label>
@@ -390,17 +374,19 @@
                         </div>
                     )}
 
-                    {/* 完了画面 */}
+                    {/* ★真っ白問題解消：完了画面も fixed と items-center で画面中央に固定します */}
                     {showComplete && (
-                        <div className="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center pb-safe">
-                            <div className="w-20 h-20 bg-green-100 text-nanairo-dark rounded-full flex items-center justify-center mb-6"><Icons.Check className="w-10 h-10" /></div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">ご注文完了しました</h2>
-                            <p className="text-gray-600 mb-2 text-sm">公式LINEへ内容を通知しました。<br/>ご来店をお待ちしております。</p>
-                            <div className="bg-gray-50 p-4 rounded-lg w-full mb-8">
-                                <p className="text-xs text-gray-500 mb-1">【お受け取り日時】</p>
-                                <p className="font-bold text-gray-800">{pickupDate} {pickupTime}</p>
+                        <div className="fixed inset-0 z-50 flex justify-center bg-gray-50">
+                            <div className="w-full max-w-[430px] bg-white h-full flex flex-col items-center justify-center p-6 text-center pb-safe">
+                                <div className="w-20 h-20 bg-green-100 text-nanairo-dark rounded-full flex items-center justify-center mb-6"><Icons.Check className="w-10 h-10" /></div>
+                                <h2 className="text-2xl font-bold text-gray-900 mb-2">ご注文完了しました</h2>
+                                <p className="text-gray-600 mb-2 text-sm">公式LINEへ内容を通知しました。<br/>ご来店をお待ちしております。</p>
+                                <div className="bg-gray-50 p-4 rounded-lg w-full mb-8">
+                                    <p className="text-xs text-gray-500 mb-1">【お受け取り日時】</p>
+                                    <p className="font-bold text-gray-800">{pickupDate} {pickupTime}</p>
+                                </div>
+                                <button onClick={closeApp} className="w-full bg-gray-800 text-white rounded-xl py-4 font-bold text-lg active:bg-gray-900">トーク画面に戻る</button>
                             </div>
-                            <button onClick={closeApp} className="w-full bg-gray-800 text-white rounded-xl py-4 font-bold text-lg active:bg-gray-900">トーク画面に戻る</button>
                         </div>
                     )}
                 </div>
