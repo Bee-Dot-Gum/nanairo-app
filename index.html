@@ -1,325 +1,345 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>なないろ菜・マイクロハーブ 発注システム</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- ★LIFF SDKを読み込む -->
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>なないろ菜 発注システム</title>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'nanairo': { light: '#e6f4ea', DEFAULT: '#4ade80', dark: '#16a34a' },
-                        'nanairo-accent': '#f97316',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        ::-webkit-scrollbar { display: none; }
-        body {
-            -ms-overflow-style: none; scrollbar-width: none;
-            background-color: #f3f4f6; font-family: -apple-system, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .app-container {
-            max-width: 430px; margin: 0 auto; background-color: white;
-            min-height: 100vh; position: relative; display: flex; flex-direction: column;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
-    </style>
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    /* スマホ特有のタップハイライトを消す */
+    * { -webkit-tap-highlight-color: transparent; }
+    /* iPhoneの画面下部の安全領域を確保 */
+    .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 5rem); }
+  </style>
 </head>
-<body>
-    <div id="root"></div>
-    <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+<body class="bg-gray-50 text-gray-800 font-sans">
+  <div id="root"></div>
 
-        const PAST_ORDERS = []; // 今は空にしておきます
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const { ShoppingCart, ClipboardList, Plus, Minus, X, CheckCircle, Store, Clock, History } = lucide;
 
-        const PRODUCTS_DATA = [
-            { id: 'p1', name: 'なないろ菜', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('なないろ菜')}` },
-            { id: 'p2', name: 'デトロイト', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('デトロイト')}` },
-            { id: 'p3', name: 'アマランサス', price: 400, unit: 'P', stock: '残りわずか', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('アマランサス')}` },
-            { id: 'p4', name: 'レッドラディッシュ', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('レッドラディッシュ')}` },
-            { id: 'p5', name: '青じそ', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('青じそ')}` },
-            { id: 'p6', name: '赤じそ', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('赤じそ')}` },
-            { id: 'p7', name: 'ひまわり', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('ひまわり')}` },
-            { id: 'p8', name: 'レッドケール', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('レッドケール')}` },
-            { id: 'p9', name: 'ペッパークレス', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('ペッパークレス')}` },
-            { id: 'p10', name: 'マスタード', price: 400, unit: 'P', stock: '残りわずか', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('マスタード')}` },
-            { id: 'p11', name: 'ロケット', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('ロケット')}` },
-            { id: 'p12', name: 'にんじん', price: 400, unit: 'P', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent('にんじん')}` },
-        ];
+    // =========================================================================
+    // ⚠️ 必須設定：以下の2つを、ご自身のURLとIDに必ず書き換えてください！
+    // =========================================================================
+    const GAS_URL = "ここにGASのウェブアプリURLを貼り付けます"; 
+    const LIFF_ID = "ここにLIFF_IDを貼り付けます";
+    // =========================================================================
 
-        function App() {
-            // ★LINEから取得するユーザー情報
-            const [userName, setUserName] = useState("読み込み中...");
-            const [userId, setUserId] = useState("");
-            const [isLiffReady, setIsLiffReady] = useState(false);
+    // 商品データ（後で写真はご自身のものに差し替えられます）
+    const initialProducts = [
+      { id: 1, name: "なないろ菜", price: 400, stock: "在庫あり", img: "https://placehold.co/150x150/e2e8f0/64748b?text=Nanairo" },
+      { id: 2, name: "デトロイト", price: 400, stock: "残りわずか", img: "https://placehold.co/150x150/e2e8f0/64748b?text=Detroit" },
+      { id: 3, name: "青じそ", price: 400, stock: "在庫あり", img: "https://placehold.co/150x150/e2e8f0/64748b?text=Aojiso" },
+      { id: 4, name: "レッドマスタード", price: 400, stock: "在庫あり", img: "https://placehold.co/150x150/e2e8f0/64748b?text=Mustard" },
+    ];
 
-            const [cart, setCart] = useState({});
-            const [showConfirm, setShowConfirm] = useState(false);
-            const [showComplete, setShowComplete] = useState(false);
-            const [showHistory, setShowHistory] = useState(false);
-            
-            const [pickupDate, setPickupDate] = useState("");
-            const [pickupTime, setPickupTime] = useState("11:00-12:00");
-            const [memo, setMemo] = useState("");
+    const App = () => {
+      // 状態管理（State）
+      const [liffProfile, setLiffProfile] = useState({ displayName: "お客様", userId: "" });
+      const [activeTab, setActiveTab] = useState('home'); // 'home' または 'history'
+      const [cart, setCart] = useState({});
+      const [isCartOpen, setIsCartOpen] = useState(false);
+      const [pickupDate, setPickupDate] = useState("");
+      const [pickupTime, setPickupTime] = useState("11:00-12:00");
+      const [memo, setMemo] = useState("");
+      const [isSubmitting, setIsSubmitting] = useState(false); // ★連打防止フラグ
+      const [isComplete, setIsComplete] = useState(false);
 
-            useEffect(() => {
-                lucide.createIcons();
-                // ★LIFFの初期化処理
-                liff.init({ liffId: "2010021938-R9EhB5rj" })
-                    .then(() => {
-                        if (liff.isLoggedIn()) {
-                            liff.getProfile().then(profile => {
-                                setUserName(profile.displayName);
-                                setUserId(profile.userId); // 送信用の裏側IDを取得
-                                setIsLiffReady(true);
-                            });
-                        } else {
-                            setUserName("ゲスト");
-                            setIsLiffReady(true);
-                        }
-                    })
-                    .catch(err => {
-                        console.error('LIFF init failed', err);
-                        setUserName("ゲスト(エラー)");
-                        setIsLiffReady(true);
-                    });
-            });
+      // LIFFの初期化
+      useEffect(() => {
+        liff.init({ liffId: LIFF_ID })
+          .then(() => {
+            if (liff.isLoggedIn()) {
+              liff.getProfile().then(profile => {
+                setLiffProfile({ displayName: profile.displayName, userId: profile.userId });
+              });
+            } else {
+              liff.login();
+            }
+          })
+          .catch(err => console.error("LIFF Init Error:", err));
+          
+        // 今日の日付を初期値にセット
+        const today = new Date().toISOString().split('T')[0];
+        setPickupDate(today);
+      }, []);
 
-            const updateQuantity = (productId, delta) => {
-                setCart(prev => {
-                    const next = Math.max(0, (prev[productId] || 0) + delta);
-                    const newCart = { ...prev };
-                    if (next === 0) delete newCart[productId];
-                    else newCart[productId] = next;
-                    return newCart;
-                });
-            };
+      // カートの操作
+      const updateCart = (productId, change) => {
+        setCart(prev => {
+          const current = prev[productId] || 0;
+          const next = Math.max(0, current + change);
+          const newCart = { ...prev };
+          if (next === 0) delete newCart[productId];
+          else newCart[productId] = next;
+          return newCart;
+        });
+      };
 
-            const setQuantity = (productId, amount) => setCart(prev => ({ ...prev, [productId]: amount }));
+      const getCartItems = () => {
+        return Object.entries(cart).map(([id, quantity]) => {
+          const product = initialProducts.find(p => p.id === parseInt(id));
+          return { ...product, quantity };
+        });
+      };
 
-            const cartSummary = useMemo(() => {
-                let totalItems = 0, totalPrice = 0;
-                Object.entries(cart).forEach(([id, quantity]) => {
-                    const product = PRODUCTS_DATA.find(p => p.id === id);
-                    if (product) { totalItems += quantity; totalPrice += product.price * quantity; }
-                });
-                return { totalItems, totalPrice };
-            }, [cart]);
+      const totalPrice = getCartItems().reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const totalQuantity = getCartItems().reduce((sum, item) => sum + item.quantity, 0);
 
-            const copyFromHistory = (items) => { setCart(items); setShowHistory(false); };
+      // ★ 注文送信処理（連打防止つき）
+      const submitOrder = async () => {
+        if (!pickupDate) return alert("お受け取り日を入力してください。");
+        
+        setIsSubmitting(true); // ★ボタンを無効化して「送信中」にする
 
-            const handleOrderSubmit = async () => {
-                const orderItemsString = Object.entries(cart).map(([id, qty]) => {
-                    const p = PRODUCTS_DATA.find(p => p.id === id);
-                    return `${p.name} × ${qty}`;
-                }).join('\n');
+        const orderItemsStr = getCartItems().map(item => `${item.name} × ${item.quantity}`).join("\n");
+        const orderData = {
+          userName: liffProfile.displayName,
+          userId: liffProfile.userId,
+          orderItems: orderItemsStr,
+          pickupDate: pickupDate,
+          pickupTime: pickupTime,
+          memo: memo,
+          totalPrice: totalPrice
+        };
 
-                const payload = {
-                    userName: userName, // お名前
-                    userId: userId,     // 裏側の送信先ID
-                    orderItems: orderItemsString,
-                    pickupDate: pickupDate,
-                    pickupTime: pickupTime,
-                    memo: memo || "なし",
-                    totalPrice: cartSummary.totalPrice
-                };
-
-                try {
-                    const gasUrl = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
-                    await fetch(gasUrl, {
-                        method: "POST",
-                        headers: { "Content-Type": "text/plain;charset=utf-8" },
-                        body: JSON.stringify(payload)
-                    });
-                    setShowConfirm(false);
-                    setShowComplete(true);
-                } catch (error) {
-                    console.error("送信エラー:", error);
-                    alert("送信に失敗しました。");
-                }
-            };
-
-            const closeApp = () => {
-                if (liff.isLoggedIn()) { liff.closeWindow(); } else { alert('LIFFウィンドウを閉じます'); }
-            };
-
-            return (
-                <div className="app-container pb-24">
-                    <header className="sticky top-0 z-20 bg-nanairo-light px-4 py-3 flex justify-between items-center shadow-sm">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-xs">LINE</div>
-                            <span className="font-bold text-gray-800 text-sm">なないろ菜・マイクロハーブ</span>
-                        </div>
-                        <i data-lucide="x" className="w-5 h-5 text-gray-500" onClick={closeApp}></i>
-                    </header>
-
-                    <main className="flex-1 overflow-y-auto bg-white px-4 py-4 space-y-6">
-                        <div className="flex justify-between items-end border-b border-gray-200 pb-2 mb-4">
-                            <h2 className="text-lg font-bold text-gray-800">{userName}様</h2>
-                            <span className="text-sm text-gray-600">本日のご注文</span>
-                        </div>
-
-                        <section>
-                            <div className="flex justify-between items-end mb-3">
-                                <h3 className="font-bold text-gray-800">商品一覧</h3>
-                                <button onClick={() => setShowHistory(true)} className="text-sm text-nanairo-dark font-bold flex items-center gap-1 active:opacity-70">
-                                    <i data-lucide="history" className="w-4 h-4"></i>注文履歴を見る
-                                </button>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-3">
-                                {PRODUCTS_DATA.map(product => {
-                                    const qty = cart[product.id] || 0;
-                                    const isLowStock = product.stock === '残りわずか';
-                                    return (
-                                        <div key={product.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
-                                            <div className="relative h-28 bg-gray-100"><img src={product.image} alt={product.name} className="w-full h-full object-cover" /></div>
-                                            <div className="p-2 flex-1 flex flex-col">
-                                                <h4 className="text-sm font-bold text-gray-800 leading-tight mb-1 line-clamp-2">{product.name}</h4>
-                                                <div className="flex justify-between items-baseline mt-auto">
-                                                    <span className="font-bold text-gray-900">¥{product.price}</span>
-                                                    <span className="text-xs text-gray-500">/{product.unit}</span>
-                                                </div>
-                                                <div className="text-xs mt-1 font-medium">在庫: <span className={isLowStock ? 'text-nanairo-accent' : 'text-gray-600'}>{product.stock}</span></div>
-                                                <div className="mt-2 h-8">
-                                                    {qty === 0 ? (
-                                                        <button onClick={() => setQuantity(product.id, 1)} className={`w-full h-full rounded-md text-sm font-bold transition-colors ${isLowStock ? 'bg-orange-100 text-nanairo-accent' : 'bg-nanairo-dark text-white'}`}>カートに追加</button>
-                                                    ) : (
-                                                        <div className="flex items-center justify-between bg-gray-100 rounded-md h-full px-1">
-                                                            <button onClick={() => updateQuantity(product.id, -1)} className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"><i data-lucide="minus" className="w-4 h-4"></i></button>
-                                                            <span className="font-bold text-sm w-6 text-center">{qty}</span>
-                                                            <button onClick={() => updateQuantity(product.id, 1)} className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"><i data-lucide="plus" className="w-4 h-4"></i></button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </section>
-                    </main>
-
-                    {cartSummary.totalItems > 0 && !showConfirm && !showComplete && (
-                        <div className="fixed bottom-0 w-full max-w-[430px] p-4 bg-white/90 backdrop-blur border-t border-gray-100 z-30 animate-slide-up">
-                            <button onClick={() => setShowConfirm(true)} className="w-full bg-[#759fbf] text-white rounded-full py-3.5 px-4 flex justify-between items-center font-bold shadow-lg active:bg-[#5c809a] transition-colors">
-                                <div className="flex items-center gap-2"><i data-lucide="shopping-cart" className="w-5 h-5"></i><span>カートを見る</span></div>
-                                <div className="flex items-center gap-3"><span className="text-sm font-normal">合計 {cartSummary.totalItems}点</span><span className="text-lg">¥{cartSummary.totalPrice.toLocaleString()}</span></div>
-                            </button>
-                        </div>
-                    )}
-
-                    {showConfirm && (
-                        <div className="absolute inset-0 bg-black/50 z-40 flex flex-col justify-end">
-                            <div className="bg-white rounded-t-3xl w-full max-h-[85vh] flex flex-col animate-slide-up">
-                                <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-3xl z-10">
-                                    <h2 className="font-bold text-lg">注文内容の確認</h2>
-                                    <button onClick={() => setShowConfirm(false)} className="p-1 bg-gray-100 rounded-full"><i data-lucide="x" className="w-5 h-5"></i></button>
-                                </div>
-                                <div className="overflow-y-auto p-4 flex-1">
-                                    <div className="space-y-4">
-                                        {Object.entries(cart).map(([id, qty]) => {
-                                            const p = PRODUCTS_DATA.find(p => p.id === id);
-                                            return (
-                                                <div key={id} className="flex justify-between items-center">
-                                                    <div><p className="font-bold text-sm">{p.name}</p><p className="text-xs text-gray-500">¥{p.price} × {qty}{p.unit}</p></div>
-                                                    <p className="font-bold text-gray-900">¥{(p.price * qty).toLocaleString()}</p>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    <div className="mt-6 border-t pt-4 space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-1">ご来店予定日 <span className="text-red-500">*</span></label>
-                                            <input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-base focus:ring-2 focus:ring-nanairo-dark outline-none" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-1">ご来店時間帯 <span className="text-red-500">*</span></label>
-                                            <select value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-base focus:ring-2 focus:ring-nanairo-dark outline-none bg-white">
-                                                <option value="11:00-12:00">11:00 - 12:00</option><option value="12:00-13:00">12:00 - 13:00</option><option value="13:00-14:00">13:00 - 14:00</option><option value="14:00-15:00">14:00 - 15:00</option><option value="15:00-16:00">15:00 - 16:00</option><option value="16:00-17:00">16:00 - 17:00</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-1">備考欄 (任意)</label>
-                                            <textarea value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="ご要望があればご記入ください" className="w-full border border-gray-300 rounded-lg p-2.5 text-base h-20 resize-none focus:ring-2 focus:ring-nanairo-dark outline-none"></textarea>
-                                        </div>
-                                        <div className="flex justify-between items-end mt-4 pt-4 border-t">
-                                            <span className="font-bold text-gray-800">総合計 (税込)</span>
-                                            <span className="text-2xl font-bold text-gray-900">¥{cartSummary.totalPrice.toLocaleString()}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="p-4 border-t sticky bottom-0 bg-white">
-                                    <button onClick={handleOrderSubmit} disabled={!pickupDate} className={`w-full rounded-xl py-4 font-bold text-lg shadow-lg transition-colors ${pickupDate ? 'bg-nanairo-dark text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
-                                        {pickupDate ? 'この内容で予約する' : '来店予定日を入力してください'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {showHistory && (
-                        <div className="absolute inset-0 bg-black/50 z-50 flex flex-col justify-end">
-                            <div className="bg-white rounded-t-3xl w-full max-h-[80vh] flex flex-col animate-slide-up">
-                                <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-3xl z-10">
-                                    <h2 className="font-bold text-lg">過去の注文履歴</h2>
-                                    <button onClick={() => setShowHistory(false)} className="p-1 bg-gray-100 rounded-full"><i data-lucide="x" className="w-5 h-5"></i></button>
-                                </div>
-                                <div className="overflow-y-auto p-4 flex-1 space-y-4 pb-12">
-                                    {PAST_ORDERS.length === 0 ? <p className="text-gray-500 text-center py-4">履歴はありません</p> : PAST_ORDERS.map(order => {
-                                        let total = 0;
-                                        return (
-                                            <div key={order.id} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                                                <div className="font-bold text-gray-800 mb-2 border-b pb-2">{order.date} の注文</div>
-                                                <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                                                    {Object.entries(order.items).map(([id, qty]) => {
-                                                        const p = PRODUCTS_DATA.find(p => p.id === id);
-                                                        if (p) total += p.price * qty;
-                                                        return p ? <li key={id}>{p.name} × {qty}</li> : null;
-                                                    })}
-                                                </ul>
-                                                <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
-                                                    <span className="font-bold text-gray-900">合計: ¥{total.toLocaleString()}</span>
-                                                    <button onClick={() => copyFromHistory(order.items)} className="bg-nanairo-dark text-white px-4 py-2 rounded-lg font-bold text-sm">再注文する</button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {showComplete && (
-                        <div className="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center">
-                            <div className="w-20 h-20 bg-green-100 text-nanairo-dark rounded-full flex items-center justify-center mb-6"><i data-lucide="check" className="w-10 h-10"></i></div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">ご予約完了しました</h2>
-                            <p className="text-gray-600 mb-2">公式LINEへ予約内容を通知しました。<br/>ご来店をお待ちしております。</p>
-                            <p className="text-sm text-gray-500 mb-8 bg-gray-50 p-4 rounded-lg w-full">【お受け取り日時】<br/><span className="font-bold text-gray-800 text-base">{pickupDate} {pickupTime}</span></p>
-                            <button onClick={closeApp} className="w-full bg-gray-800 text-white rounded-xl py-4 font-bold text-lg">トーク画面に戻る</button>
-                        </div>
-                    )}
-                </div>
-            );
+        try {
+          const res = await fetch(GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify(orderData)
+          });
+          const result = await res.json();
+          
+          if (result.status === "success") {
+            // ローカルに履歴を保存
+            saveOrderHistory(orderData);
+            setIsComplete(true);
+            setCart({});
+          }
+        } catch (error) {
+          alert("通信エラーが発生しました。もう一度お試しください。");
+        } finally {
+          setIsSubmitting(false); // ★処理が終わったらフラグを戻す
         }
+      };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+      // 履歴保存関数
+      const saveOrderHistory = (orderData) => {
+        const history = JSON.parse(localStorage.getItem('nanairo_history') || '[]');
+        history.unshift({
+          date: new Date().toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          items: orderData.orderItems,
+          total: orderData.totalPrice,
+          pickup: `${orderData.pickupDate} ${orderData.pickupTime}`
+        });
+        localStorage.setItem('nanairo_history', JSON.stringify(history));
+      };
+
+      // --- 画面パーツ：商品一覧 ---
+      const HomeTab = () => (
+        <div className="p-4 space-y-4">
+          <div className="bg-emerald-50 rounded-xl p-4 mb-4 text-emerald-800">
+            <h2 className="font-bold">ようこそ、{liffProfile.displayName} 様</h2>
+            <p className="text-sm mt-1">ご希望のマイクロハーブをお選びください。</p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {initialProducts.map(p => (
+              <div key={p.id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                <img src={p.img} alt={p.name} className="w-full h-32 object-cover" />
+                <div className="p-3">
+                  <h3 className="font-bold text-gray-800 leading-tight">{p.name}</h3>
+                  <p className="text-emerald-600 font-bold mt-1">¥{p.price}</p>
+                  
+                  {/* 個数選択 */}
+                  {cart[p.id] ? (
+                    <div className="flex items-center justify-between mt-3 bg-emerald-50 rounded-lg p-1">
+                      <button onClick={() => updateCart(p.id, -1)} className="w-8 h-8 flex justify-center items-center text-emerald-600"><Minus size={18} /></button>
+                      <span className="font-bold text-emerald-800">{cart[p.id]}</span>
+                      <button onClick={() => updateCart(p.id, 1)} className="w-8 h-8 flex justify-center items-center text-emerald-600"><Plus size={18} /></button>
+                    </div>
+                  ) : (
+                    <button onClick={() => updateCart(p.id, 1)} className="w-full mt-3 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg text-sm font-bold transition">
+                      追加する
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+      // --- 画面パーツ：注文履歴 ---
+      const HistoryTab = () => {
+        const history = JSON.parse(localStorage.getItem('nanairo_history') || '[]');
+        return (
+          <div className="p-4">
+            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <History className="text-emerald-600" size={20} /> 最近のご注文
+            </h2>
+            {history.length === 0 ? (
+              <p className="text-gray-500 text-center py-10 bg-white rounded-xl shadow-sm">履歴はありません。</p>
+            ) : (
+              <div className="space-y-3">
+                {history.map((h, i) => (
+                  <div key={i} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <p className="text-xs text-gray-400 mb-2">{h.date} 注文</p>
+                    <p className="whitespace-pre-line text-sm text-gray-700 font-medium leading-relaxed">{h.items}</p>
+                    <div className="flex justify-between items-end mt-3 pt-3 border-t border-gray-100">
+                      <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded">受取: {h.pickup}</span>
+                      <span className="font-bold text-gray-800">¥{h.total.toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      // 完了画面
+      if (isComplete) {
+        return (
+          <div className="h-screen flex flex-col items-center justify-center bg-emerald-50 p-6 text-center">
+            <CheckCircle size={64} className="text-emerald-500 mb-4" />
+            <h2 className="text-2xl font-bold text-emerald-800 mb-2">ご注文完了</h2>
+            <p className="text-emerald-600 mb-8">LINEに確認メッセージをお送りしました。<br/>ご来店をお待ちしております。</p>
+            <button onClick={() => liff.closeWindow()} className="w-full bg-emerald-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg">
+              LINEのトーク画面に戻る
+            </button>
+          </div>
+        );
+      }
+
+      return (
+        <div className="h-screen flex flex-col bg-gray-50 relative pb-safe">
+          
+          {/* メインコンテンツエリア */}
+          <div className="flex-1 overflow-y-auto">
+            {activeTab === 'home' ? <HomeTab /> : <HistoryTab />}
+          </div>
+
+          {/* フローティング「カートを見る」帯（タブに被らないように配置） */}
+          {totalQuantity > 0 && !isCartOpen && (
+            <div className="fixed bottom-[4.5rem] left-0 w-full p-4 z-40">
+              <button 
+                onClick={() => setIsCartOpen(true)}
+                className="w-full bg-emerald-600 text-white shadow-lg rounded-xl flex items-center justify-between p-4 active:scale-95 transition-transform"
+              >
+                <div className="flex items-center gap-2 font-bold">
+                  <div className="bg-white text-emerald-600 w-6 h-6 rounded-full flex items-center justify-center text-sm">{totalQuantity}</div>
+                  カートを確認
+                </div>
+                <div className="font-bold text-lg">¥{totalPrice.toLocaleString()}</div>
+              </button>
+            </div>
+          )}
+
+          {/* 新設：ボトムナビゲーション（タブ） */}
+          <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex h-16 z-30 pb-safe">
+            <button 
+              onClick={() => setActiveTab('home')} 
+              className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'home' ? 'text-emerald-600' : 'text-gray-400'}`}
+            >
+              <Store size={24} />
+              <span className="text-[10px] font-bold">商品を選ぶ</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('history')} 
+              className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'history' ? 'text-emerald-600' : 'text-gray-400'}`}
+            >
+              <History size={24} />
+              <span className="text-[10px] font-bold">注文履歴</span>
+            </button>
+          </div>
+
+          {/* 改良版：カート画面（モーダル）- 余白を極力なくしました */}
+          {isCartOpen && (
+            <div className="fixed inset-0 bg-gray-50 z-50 flex flex-col">
+              {/* ヘッダー */}
+              <div className="bg-white border-b px-4 py-3 flex justify-between items-center shrink-0">
+                <h2 className="font-bold text-lg flex items-center gap-2"><ShoppingCart size={20}/> ご注文内容</h2>
+                <button onClick={() => setIsCartOpen(false)} className="p-2 -mr-2 text-gray-500 rounded-full hover:bg-gray-100"><X size={24} /></button>
+              </div>
+
+              {/* スクロールエリア */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* 選択したアイテム */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+                  {getCartItems().map(item => (
+                    <div key={item.id} className="flex justify-between items-center py-2 border-b last:border-0 border-gray-50">
+                      <div className="font-bold text-gray-700">{item.name}</div>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => updateCart(item.id, -1)} className="w-8 h-8 flex justify-center items-center bg-gray-100 rounded-lg text-gray-600"><Minus size={16}/></button>
+                        <span className="w-4 text-center font-bold">{item.quantity}</span>
+                        <button onClick={() => updateCart(item.id, 1)} className="w-8 h-8 flex justify-center items-center bg-gray-100 rounded-lg text-gray-600"><Plus size={16}/></button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="mt-3 pt-3 border-t flex justify-between items-center">
+                    <span className="text-gray-500 font-bold">合計</span>
+                    <span className="text-xl font-bold text-emerald-600">¥{totalPrice.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* 受け取り日時 */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 space-y-3">
+                  <h3 className="font-bold text-gray-700 flex items-center gap-2"><Clock size={16}/> お受け取り日時</h3>
+                  <div className="flex gap-2">
+                    <input type="date" value={pickupDate} onChange={e => setPickupDate(e.target.value)} className="flex-1 border-gray-200 bg-gray-50 rounded-lg p-2 text-sm font-medium" />
+                    <select value={pickupTime} onChange={e => setPickupTime(e.target.value)} className="flex-1 border-gray-200 bg-gray-50 rounded-lg p-2 text-sm font-medium">
+                      <option value="11:00-12:00">11:00-12:00</option>
+                      <option value="13:00-14:00">13:00-14:00</option>
+                      <option value="15:00-16:00">15:00-16:00</option>
+                      <option value="16:00-17:00">16:00-17:00</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* メモ */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+                  <h3 className="font-bold text-gray-700 mb-2 flex items-center gap-2"><ClipboardList size={16}/> 備考・メモ</h3>
+                  <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="ご要望などがあればご記入ください" className="w-full border-gray-200 bg-gray-50 rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500" rows="2"></textarea>
+                </div>
+              </div>
+
+              {/* 固定の注文ボタン（余白なし） */}
+              <div className="bg-white border-t p-4 shrink-0 pb-safe">
+                <button 
+                  onClick={submitOrder}
+                  disabled={isSubmitting}
+                  className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg flex justify-center items-center gap-2 transition
+                    ${isSubmitting ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
+                >
+                  {isSubmitting ? (
+                    <>処理中... しばらくお待ち下さい</>
+                  ) : (
+                    <>注文を確定する</>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
 </body>
 </html>
