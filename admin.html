@@ -203,7 +203,7 @@
             // ==========================================
             // UIコンポーネント: 1. 注文管理タブ
             // ==========================================
-            const OrdersTab = () => {
+            const renderOrdersTab = () => {
                 const isCurrentMonth = viewStartMonth === todayMonth;
                 const activeOrders = orders.filter(o => o.status !== '受渡済');
                 
@@ -341,7 +341,7 @@
             // ==========================================
             // UIコンポーネント: 2. 在庫調整タブ
             // ==========================================
-            const InventoryTab = () => (
+            const renderInventoryTab = () => (
                 <div className="animate-slide-up space-y-6">
                     <div className="flex justify-between items-end border-l-4 border-nanairo-dark pl-2">
                         <h1 className="text-xl font-bold text-gray-800">在庫管理・調整</h1>
@@ -433,7 +433,7 @@
             // ==========================================
             // UIコンポーネント: 3. 分析タブ
             // ==========================================
-            const AnalyticsTab = () => {
+            const renderAnalyticsTab = () => {
                 const formatMonth = (m) => m ? m.replace('-', '年') + '月' : '';
                 const isSingleMonth = viewStartMonth === viewEndMonth;
                 const periodText = isSingleMonth ? formatMonth(viewStartMonth) : `${formatMonth(viewStartMonth)} 〜 ${formatMonth(viewEndMonth)}`;
