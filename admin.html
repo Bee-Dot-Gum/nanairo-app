@@ -53,8 +53,11 @@
             ClipboardList: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>,
             TrendingUp: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
             Clock: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            User: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
             AlertTriangle: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>,
+            Users: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
             CreditCard: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>,
+            Star: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
             Award: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>,
             ShoppingBag: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>,
             Calendar: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
@@ -73,24 +76,23 @@
             const [isLoadingData, setIsLoadingData] = useState(true);
             const [isFetchingData, setIsFetchingData] = useState(false);
 
-            // 在庫調整用の状態
             const [selectedProductId, setSelectedProductId] = useState('');
             const [type, setType] = useState('add'); 
             const [amount, setAmount] = useState(1);
-            // ★PC入力バグ対策: メモステートを親コンポーネントで管理し、再レンダリング時のリセットを防ぎます
             const [stockMemo, setStockMemo] = useState(''); 
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [message, setMessage] = useState('');
 
-            // 月指定
+            // 月指定（初期値は今月）
             const todayMonth = new Date().toISOString().slice(0, 7);
             const [viewStartMonth, setViewStartMonth] = useState(todayMonth);
-            const [viewEndMonth, setViewEndMonth] = useState(todayMonth);
+            const [viewEndMonth, setViewEndMonth] = useState(todayMonth); // ★追加: 終了月
 
-            const fetchData = async (monthParam) => {
+            // ★修正: GASへリクエストを送る際に endMonth も一緒に送る
+            const fetchData = async (startMonth, endMonth) => {
                 setIsFetchingData(true);
                 try {
-                    const response = await fetch(`${GAS_URL}?action=getAdminData&month=${monthParam}`);
+                    const response = await fetch(`${GAS_URL}?action=getAdminData&month=${startMonth}&endMonth=${endMonth}`);
                     const data = await response.json();
                     
                     if (data.status === 'error') {
@@ -112,12 +114,17 @@
                 }
             };
 
+            // 月の期間が変更されたら再取得
             useEffect(() => {
-                fetchData(viewStartMonth);
-            }, [viewStartMonth]);
+                // startMonth が endMonth より未来にならないように制御
+                if (viewStartMonth > viewEndMonth) {
+                    setViewEndMonth(viewStartMonth);
+                }
+                fetchData(viewStartMonth, viewEndMonth);
+            }, [viewStartMonth, viewEndMonth]);
 
             const handleRefresh = () => {
-                fetchData(viewStartMonth);
+                fetchData(viewStartMonth, viewEndMonth);
             };
 
             const handleActionClick = (productId, actionType) => {
@@ -148,7 +155,7 @@
                     setMessage(`${amount}件の${type === 'add' ? '追加' : '破棄'}を記録しました！`);
                     setTimeout(() => setMessage(''), 3000);
                     
-                    fetchData(viewStartMonth);
+                    fetchData(viewStartMonth, viewEndMonth);
                     
                     setAmount(1); 
                     setStockMemo(''); 
@@ -176,7 +183,7 @@
                         })
                     });
                     
-                    fetchData(viewStartMonth);
+                    fetchData(viewStartMonth, viewEndMonth);
                     
                 } catch(error) {
                     alert("ステータス更新に失敗しました。");
@@ -194,26 +201,33 @@
             }
 
             // ==========================================
-            // UIレンダー: 関数呼び出しとして実行し、フォーカス消失バグを防ぎます
+            // UIコンポーネント: 1. 注文管理タブ
             // ==========================================
-            const renderOrdersTab = () => {
+            const OrdersTab = () => {
                 const isCurrentMonth = viewStartMonth === todayMonth;
                 const activeOrders = orders.filter(o => o.status !== '受渡済');
                 
-                const pastOrders = isCurrentMonth 
-                    ? orders.filter(o => o.status === '受渡済' && o.orderDate && o.orderDate.startsWith(todayMonth))
-                    : orders.filter(o => o.status === '受渡済' && o.orderDate && o.orderDate.startsWith(viewStartMonth));
+                // 今回は「期間」で取得しているので、取得したものをそのまま全て表示します
+                const pastOrders = orders.filter(o => o.status === '受渡済');
 
                 return (
                     <div className="animate-slide-up space-y-5">
                         <div className="flex justify-between items-center mb-4">
-                            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm w-fit">
+                            {/* ★修正: 期間指定ができるカレンダー入力枠 */}
+                            <div className="flex flex-wrap items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm w-fit">
                                 <Icons.Calendar className="w-4 h-4 text-gray-500" />
                                 <input 
                                     type="month" 
                                     value={viewStartMonth} 
                                     onChange={(e) => setViewStartMonth(e.target.value)}
-                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer"
+                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24"
+                                />
+                                <span className="text-gray-400 font-bold">〜</span>
+                                <input 
+                                    type="month" 
+                                    value={viewEndMonth} 
+                                    onChange={(e) => setViewEndMonth(e.target.value)}
+                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24"
                                 />
                             </div>
                             <button onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100">
@@ -221,6 +235,7 @@
                             </button>
                         </div>
 
+                        {/* 今月が含まれる期間を見ている時だけ「未対応」を表示 */}
                         {isCurrentMonth && (
                             <>
                                 <div className="flex justify-between items-end border-l-4 border-nanairo-dark pl-2">
@@ -293,12 +308,12 @@
                         <div className={isCurrentMonth ? "pt-4 border-t border-gray-200" : ""}>
                             <h3 className="font-bold text-gray-600 mb-3 text-sm flex items-center gap-2">
                                 <Icons.ClipboardList className="w-4 h-4" /> 
-                                {isCurrentMonth ? "最近の受渡済み" : `${viewStartMonth.split('-')[1]}月の受渡済み一覧`}
+                                受渡済みの注文
                             </h3>
                             
                             {pastOrders.length === 0 ? (
                                 <div className="text-center py-10 bg-gray-50 rounded-xl text-gray-500 text-sm border border-gray-200">
-                                    この月の履歴はありません。
+                                    指定した期間の履歴はありません。
                                 </div>
                             ) : (
                                 <div className="space-y-2">
@@ -312,7 +327,6 @@
                                             </div>
                                             <div className="text-right flex flex-col items-end gap-1">
                                                 <div className="font-bold text-sm text-gray-800">¥{(order.totalPrice || 0).toLocaleString()}</div>
-                                                {/* ★修正: 常に戻すボタンを表示 */}
                                                 <button onClick={() => toggleOrderStatus(order.id, order.status)} className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border active:bg-gray-200 mt-1">戻す</button>
                                             </div>
                                         </div>
@@ -324,7 +338,10 @@
                 );
             };
 
-            const renderInventoryTab = () => (
+            // ==========================================
+            // UIコンポーネント: 2. 在庫調整タブ
+            // ==========================================
+            const InventoryTab = () => (
                 <div className="animate-slide-up space-y-6">
                     <div className="flex justify-between items-end border-l-4 border-nanairo-dark pl-2">
                         <h1 className="text-xl font-bold text-gray-800">在庫管理・調整</h1>
@@ -413,13 +430,15 @@
                 </div>
             );
 
-            const renderAnalyticsTab = () => {
+            // ==========================================
+            // UIコンポーネント: 3. 分析タブ
+            // ==========================================
+            const AnalyticsTab = () => {
                 const formatMonth = (m) => m ? m.replace('-', '年') + '月' : '';
                 const isSingleMonth = viewStartMonth === viewEndMonth;
                 const periodText = isSingleMonth ? formatMonth(viewStartMonth) : `${formatMonth(viewStartMonth)} 〜 ${formatMonth(viewEndMonth)}`;
-                const shortPeriodText = isSingleMonth ? `${viewStartMonth.split('-')[1]}月` : `指定期間`;
 
-                const anData = analytics || { monthlySales: 0, orderCount: 0, averageSpend: 0, topProducts: [] };
+                const anData = analytics || { monthlySales: 0, orderCount: 0, averageSpend: 0, topProducts: [], lossAmount: 0, worstLossProducts: [] };
 
                 return (
                     <div className="animate-slide-up space-y-5">
@@ -430,7 +449,14 @@
                                     type="month" 
                                     value={viewStartMonth} 
                                     onChange={(e) => setViewStartMonth(e.target.value)}
-                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer"
+                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24"
+                                />
+                                <span className="text-gray-400 font-bold">〜</span>
+                                <input 
+                                    type="month" 
+                                    value={viewEndMonth} 
+                                    onChange={(e) => setViewEndMonth(e.target.value)}
+                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24"
                                 />
                             </div>
                             <button onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100">
@@ -445,11 +471,11 @@
                         
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.TrendingUp className="w-3 h-3"/> {shortPeriodText}の売上</div>
+                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.TrendingUp className="w-3 h-3"/> 指定期間の売上</div>
                                 <div className="text-2xl font-bold text-gray-900 tracking-tight">¥{anData.monthlySales.toLocaleString()}</div>
                             </div>
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.ClipboardList className="w-3 h-3"/> {shortPeriodText}の注文数</div>
+                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.ClipboardList className="w-3 h-3"/> 指定期間の注文数</div>
                                 <div className="text-2xl font-bold text-gray-900 tracking-tight">{anData.orderCount} <span className="text-sm font-normal text-gray-500">件</span></div>
                             </div>
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
@@ -458,13 +484,13 @@
                             </div>
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-red-100 bg-red-50/30">
                                 <div className="text-xs text-red-600 font-bold mb-1 flex items-center gap-1"><Icons.AlertTriangle className="w-3 h-3"/> 推定ロス金額</div>
-                                <div className="text-xl font-bold text-red-700 tracking-tight">--</div>
-                                <div className="text-[10px] text-red-500 font-bold mt-1">※集計中</div>
+                                {/* ★修正: 取得した本物のロス金額を表示 */}
+                                <div className="text-xl font-bold text-red-700 tracking-tight">¥{anData.lossAmount.toLocaleString()}</div>
                             </div>
                         </div>
 
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                            <h3 className="font-bold text-gray-700 text-sm mb-4 flex items-center gap-2"><Icons.ShoppingBag className="w-4 h-4 text-blue-500"/> {shortPeriodText}の人気商品トップ</h3>
+                            <h3 className="font-bold text-gray-700 text-sm mb-4 flex items-center gap-2"><Icons.ShoppingBag className="w-4 h-4 text-blue-500"/> 指定期間の人気商品</h3>
                             <div className="space-y-4">
                                 {anData.topProducts.length === 0 ? (
                                     <p className="text-sm text-gray-500 text-center py-4">データがありません</p>
@@ -488,6 +514,26 @@
                                 )}
                             </div>
                         </div>
+
+                        {/* 警告・アラートセクション */}
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-red-200">
+                            <h3 className="font-bold text-red-700 text-sm mb-2 flex items-center gap-1"><Icons.AlertTriangle className="w-4 h-4"/> 破棄ロス警戒</h3>
+                            <p className="text-[10px] text-gray-500 mb-2">指定期間内で、破棄登録が多い商品です。</p>
+                            
+                            {anData.worstLossProducts && anData.worstLossProducts.length > 0 ? (
+                                <ul className="space-y-1">
+                                    {anData.worstLossProducts.map((p, idx) => (
+                                        <li key={idx} className="flex justify-between items-center bg-red-50 p-2 rounded border border-red-100">
+                                            <span className="font-bold text-xs text-gray-800">{p.name}</span>
+                                            <span className="text-xs font-bold text-red-600">累計破棄: {p.qty} P</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-xs text-gray-500 text-center py-2 bg-gray-50 rounded">破棄の記録はありません。</p>
+                            )}
+                        </div>
+
                     </div>
                 );
             };
