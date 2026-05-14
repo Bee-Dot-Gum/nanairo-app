@@ -60,22 +60,7 @@
             Check: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 6 9 17l-5-5"/></svg>
         };
 
-        // ★追加：各商品に weight（グラム数）のデータを追加しました
-        const PRODUCTS_DATA = [
-            { id: '1', name: 'なないろ菜', price: 200, unit: 'P', weight: '50g', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Nanairo` },
-            { id: '2', name: 'デトロイト', price: 200, unit: 'P', weight: '5g', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Detroit` },
-            { id: '3', name: 'アマランサス', price: 200, unit: 'P', weight: '5g', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Amaranth` },
-            { id: '4', name: 'レッドラディッシュ', price: 200, unit: 'P', weight: '15g', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Radish` },
-            { id: '5', name: '青じそ', price: 200, unit: 'P', weight: '5g', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Aojiso` },
-            { id: '6', name: '赤じそ', price: 200, unit: 'P', weight: '5g', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Akajiso` },
-            { id: '7', name: 'ひまわり', price: 200, unit: 'P', weight: '25g', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Sunflower` },
-            { id: '8', name: 'レッドケール', price: 200, unit: 'P', weight: '5g', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Kale` },
-            { id: '9', name: 'ペッパークレス', price: 200, unit: 'P', weight: '5g', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Cress` },
-            { id: '10', name: 'マスタード', price: 200, unit: 'P', weight: '5g', stock: '残りわずか', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Mustard` },
-            { id: '11', name: 'ロケット', price: 200, unit: 'P', weight: '5g', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Rocket` },
-            { id: '12', name: 'にんじん', price: 200, unit: 'P', weight: '5g', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=Carrot` },
-            { id: '13', name: 'ハーブミックス', price: 400, unit: 'P', weight: '20g', stock: 'あり', image: `https://placehold.co/400x300/e6f4ea/16a34a?text=HerbMix` },
-        ];
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
 
         function App() {
             const [userName, setUserName] = useState("読み込み中...");
@@ -84,6 +69,10 @@
 
             const [activeTab, setActiveTab] = useState('home');
             const [pastOrders, setPastOrders] = useState([]);
+
+            // ★追加: 商品データをGASから読み込む状態
+            const [productsData, setProductsData] = useState([]);
+            const [isLoadingData, setIsLoadingData] = useState(true);
 
             const [cart, setCart] = useState({});
             const [showConfirm, setShowConfirm] = useState(false);
@@ -102,6 +91,7 @@
                 const today = new Date().toISOString().split('T')[0];
                 setPickupDate(today);
 
+                // LIFF初期化
                 liff.init({ liffId: "2010021938-R9EhB5rj" })
                     .then(() => {
                         if (liff.isLoggedIn()) {
@@ -124,6 +114,23 @@
                         setUserName("ゲスト(エラー)");
                         setIsLiffReady(true);
                     });
+
+                // ★追加: GASから最新の商品リストを取得
+                fetch(`${GAS_URL}?action=getProducts`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (Array.isArray(data)) {
+                            // ダミーの画像URLを付けて整形
+                            const formattedData = data.map(p => ({
+                                ...p,
+                                unit: 'P',
+                                image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent(p.name)}`
+                            }));
+                            setProductsData(formattedData);
+                        }
+                    })
+                    .catch(err => console.error("データ取得エラー", err))
+                    .finally(() => setIsLoadingData(false));
             }, []);
 
             const updateQuantity = (productId, delta) => {
@@ -141,11 +148,11 @@
             const cartSummary = useMemo(() => {
                 let totalItems = 0, totalPrice = 0;
                 Object.entries(cart).forEach(([id, quantity]) => {
-                    const product = PRODUCTS_DATA.find(p => p.id === id);
+                    const product = productsData.find(p => p.id === id);
                     if (product) { totalItems += quantity; totalPrice += product.price * quantity; }
                 });
                 return { totalItems, totalPrice };
-            }, [cart]);
+            }, [cart, productsData]);
 
             const copyFromHistory = (items) => { 
                 setCart(items); 
@@ -157,7 +164,7 @@
                 setIsSubmitting(true);
 
                 const orderItemsString = Object.entries(cart).map(([id, qty]) => {
-                    const p = PRODUCTS_DATA.find(p => p.id === id);
+                    const p = productsData.find(p => p.id === id);
                     return `${p.name} × ${qty}`;
                 }).join('\n');
 
@@ -172,8 +179,7 @@
                 };
 
                 try {
-                    const gasUrl = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
-                    await fetch(gasUrl, {
+                    await fetch(GAS_URL, {
                         method: "POST",
                         headers: { "Content-Type": "text/plain;charset=utf-8" },
                         body: JSON.stringify(payload)
@@ -223,39 +229,60 @@
 
                                 <section>
                                     <h3 className="font-bold text-gray-800 mb-3">商品一覧</h3>
-                                    <div className="grid grid-cols-2 gap-3 pb-20">
-                                        {PRODUCTS_DATA.map(product => {
-                                            const qty = cart[product.id] || 0;
-                                            const isLowStock = product.stock === '残りわずか';
-                                            return (
-                                                <div key={product.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
-                                                    <div className="relative h-28 bg-gray-100"><img src={product.image} alt={product.name} className="w-full h-full object-cover" /></div>
-                                                    <div className="p-2 flex-1 flex flex-col">
-                                                        <h4 className="text-sm font-bold text-gray-800 leading-tight mb-0.5 line-clamp-2">{product.name}</h4>
-                                                        {/* ★追加：グラム数を分かりやすいチップデザインで配置 */}
-                                                        <div className="text-[10px] text-gray-500 font-medium mb-1"><span className="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">{product.weight}</span></div>
-                                                        
-                                                        <div className="flex justify-between items-baseline mt-auto">
-                                                            <span className="font-bold text-gray-900">¥{product.price}</span>
-                                                            <span className="text-xs text-gray-500">/{product.unit}</span>
-                                                        </div>
-                                                        <div className="text-xs mt-1 font-medium">在庫: <span className={isLowStock ? 'text-nanairo-accent' : 'text-gray-600'}>{product.stock}</span></div>
-                                                        <div className="mt-2 h-8">
-                                                            {qty === 0 ? (
-                                                                <button onClick={() => setQuantity(product.id, 1)} className={`w-full h-full rounded-md text-sm font-bold transition-colors ${isLowStock ? 'bg-orange-100 text-nanairo-accent' : 'bg-nanairo-dark text-white'}`}>カートに追加</button>
-                                                            ) : (
-                                                                <div className="flex items-center justify-between bg-gray-100 rounded-md h-full px-1">
-                                                                    <button onClick={() => updateQuantity(product.id, -1)} className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"><Icons.Minus className="w-4 h-4" /></button>
-                                                                    <span className="font-bold text-sm w-6 text-center">{qty}</span>
-                                                                    <button onClick={() => updateQuantity(product.id, 1)} className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"><Icons.Plus className="w-4 h-4" /></button>
-                                                                </div>
-                                                            )}
+                                    
+                                    {/* ローディング表示 */}
+                                    {isLoadingData ? (
+                                        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                                            <div className="spinner mb-2 border-l-nanairo-dark"></div>
+                                            <p className="text-xs font-bold">商品データを読み込み中...</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-3 pb-20">
+                                            {productsData.map(product => {
+                                                const qty = cart[product.id] || 0;
+                                                const isLowStock = product.stock > 0 && product.stock <= 5;
+                                                const isSoldOut = product.stock <= 0;
+
+                                                return (
+                                                    <div key={product.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col relative">
+                                                        {isSoldOut && (
+                                                            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                                                                <span className="bg-gray-800 text-white font-bold px-3 py-1.5 rounded text-sm tracking-widest -rotate-12 shadow-lg">SOLD OUT</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="relative h-28 bg-gray-100"><img src={product.image} alt={product.name} className="w-full h-full object-cover" /></div>
+                                                        <div className="p-2 flex-1 flex flex-col">
+                                                            <h4 className="text-sm font-bold text-gray-800 leading-tight mb-1 line-clamp-2">{product.name}</h4>
+                                                            
+                                                            {/* ★追加: グラム数をチップで表示 */}
+                                                            <div className="mb-2">
+                                                                <span className="text-[10px] font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">内容量: {product.weight}</span>
+                                                            </div>
+
+                                                            <div className="flex justify-between items-baseline mt-auto">
+                                                                <span className="font-bold text-gray-900">¥{product.price}</span>
+                                                                <span className="text-xs text-gray-500">/{product.unit}</span>
+                                                            </div>
+                                                            <div className="text-xs mt-1 font-medium flex justify-between">
+                                                                <span>在庫: <span className={isSoldOut ? 'text-red-500 font-bold' : isLowStock ? 'text-nanairo-accent' : 'text-gray-600'}>{isSoldOut ? 'なし' : product.stock + 'P'}</span></span>
+                                                            </div>
+                                                            <div className="mt-2 h-8">
+                                                                {qty === 0 ? (
+                                                                    <button onClick={() => setQuantity(product.id, 1)} disabled={isSoldOut} className={`w-full h-full rounded-md text-sm font-bold transition-colors ${isSoldOut ? 'bg-gray-200 text-gray-400' : isLowStock ? 'bg-orange-100 text-nanairo-accent' : 'bg-nanairo-dark text-white'}`}>カートに追加</button>
+                                                                ) : (
+                                                                    <div className="flex items-center justify-between bg-gray-100 rounded-md h-full px-1">
+                                                                        <button onClick={() => updateQuantity(product.id, -1)} className="w-8 h-full flex items-center justify-center text-gray-600 active:bg-gray-200 rounded"><Icons.Minus className="w-4 h-4" /></button>
+                                                                        <span className="font-bold text-sm w-6 text-center">{qty}</span>
+                                                                        <button onClick={() => updateQuantity(product.id, 1)} disabled={qty >= product.stock} className={`w-8 h-full flex items-center justify-center rounded ${qty >= product.stock ? 'text-gray-300' : 'text-gray-600 active:bg-gray-200'}`}><Icons.Plus className="w-4 h-4" /></button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </section>
                             </>
                         ) : (
@@ -273,9 +300,10 @@
                                                 <div className="text-xs text-gray-500 mb-1">{order.date} 注文</div>
                                                 <ul className="text-sm text-gray-800 font-medium space-y-1 mb-3">
                                                     {Object.entries(order.items).map(([id, qty]) => {
-                                                        const p = PRODUCTS_DATA.find(p => p.id === id);
+                                                        const p = productsData.find(p => p.id === id);
+                                                        // 履歴表示時は当時の情報がないとエラーになるため名前だけで表示
                                                         if (p) total += p.price * qty;
-                                                        return p ? <li key={id}>{p.name} × {qty}</li> : null;
+                                                        return p ? <li key={id}>{p.name} × {qty}</li> : <li key={id}>過去の商品 × {qty}</li>;
                                                     })}
                                                 </ul>
                                                 <div className="flex justify-between items-end pt-3 border-t border-gray-200">
@@ -320,12 +348,11 @@
                                 <div className="overflow-y-auto p-4 flex-1">
                                     <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-gray-100 mb-3">
                                         {Object.entries(cart).map(([id, qty]) => {
-                                            const p = PRODUCTS_DATA.find(p => p.id === id);
+                                            const p = productsData.find(p => p.id === id);
                                             return (
                                                 <div key={id} className="flex justify-between items-center border-b border-gray-200 last:border-0 pb-2 last:pb-0">
                                                     <div>
-                                                        {/* ★追加：確認画面でもグラム数をさりげなく表示 */}
-                                                        <p className="font-bold text-sm text-gray-800">{p.name} <span className="text-[10px] font-normal text-gray-500 bg-gray-100 px-1 py-0.5 rounded ml-1">{p.weight}</span></p>
+                                                        <p className="font-bold text-sm text-gray-800">{p.name} <span className="text-[10px] font-normal text-gray-500 bg-gray-100 px-1 rounded ml-1">{p.weight}</span></p>
                                                         <p className="text-xs text-gray-500">¥{p.price} × {qty}{p.unit}</p>
                                                     </div>
                                                     <p className="font-bold text-gray-900">¥{(p.price * qty).toLocaleString()}</p>
