@@ -62,6 +62,22 @@
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
 
+        // ★追加: 商品名と画像URLのマッピング
+        const IMAGE_MAP = {
+            "アマランサス": "https://i.imgur.com/LCmD4Pd.jpeg",
+            "デトロイト": "https://i.imgur.com/YOWKgpT.jpeg",
+            "なないろ菜": "https://i.imgur.com/FlH5haw.jpeg",
+            "にんじん": "https://i.imgur.com/TtUZCjB.jpeg",
+            "ハーブミックス": "https://i.imgur.com/DwXHahe.jpeg",
+            "ひまわり": "https://i.imgur.com/TClqEi4.jpeg",
+            "ペッパークレス": "https://i.imgur.com/C2HhXX7.jpeg",
+            "マスタード": "https://i.imgur.com/3OsrLaG.jpeg",
+            "レッドケール": "https://i.imgur.com/1leRg6v.jpeg",
+            "レッドラディッシュ": "https://i.imgur.com/qLzbZzV.jpeg",
+            "ロケット": "https://i.imgur.com/qYRy12U.jpeg",
+            "青じそ": "https://i.imgur.com/IywcF1I.jpeg"
+        };
+
         function App() {
             const [userName, setUserName] = useState("読み込み中...");
             const [userId, setUserId] = useState("");
@@ -70,7 +86,6 @@
             const [activeTab, setActiveTab] = useState('home');
             const [pastOrders, setPastOrders] = useState([]);
 
-            // ★追加: 商品データをGASから読み込む状態
             const [productsData, setProductsData] = useState([]);
             const [isLoadingData, setIsLoadingData] = useState(true);
 
@@ -115,16 +130,16 @@
                         setIsLiffReady(true);
                     });
 
-                // ★追加: GASから最新の商品リストを取得
+                // GASから最新の商品リストを取得し、画像を紐付ける
                 fetch(`${GAS_URL}?action=getProducts`)
                     .then(res => res.json())
                     .then(data => {
                         if (Array.isArray(data)) {
-                            // ダミーの画像URLを付けて整形
                             const formattedData = data.map(p => ({
                                 ...p,
                                 unit: 'P',
-                                image: `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent(p.name)}`
+                                // ★修正: IMAGE_MAPに写真があればそれを使い、なければダミー画像を表示
+                                image: IMAGE_MAP[p.name] || `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent(p.name)}`
                             }));
                             setProductsData(formattedData);
                         }
@@ -250,11 +265,13 @@
                                                                 <span className="bg-gray-800 text-white font-bold px-3 py-1.5 rounded text-sm tracking-widest -rotate-12 shadow-lg">SOLD OUT</span>
                                                             </div>
                                                         )}
-                                                        <div className="relative h-28 bg-gray-100"><img src={product.image} alt={product.name} className="w-full h-full object-cover" /></div>
+                                                        {/* 画像表示部分: object-coverにより、枠に合わせて美しくトリミングされます */}
+                                                        <div className="relative h-28 bg-gray-100">
+                                                            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                                                        </div>
                                                         <div className="p-2 flex-1 flex flex-col">
                                                             <h4 className="text-sm font-bold text-gray-800 leading-tight mb-1 line-clamp-2">{product.name}</h4>
                                                             
-                                                            {/* ★追加: グラム数をチップで表示 */}
                                                             <div className="mb-2">
                                                                 <span className="text-[10px] font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">内容量: {product.weight}</span>
                                                             </div>
