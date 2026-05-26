@@ -34,10 +34,24 @@
             min-height: 100vh; position: relative; display: flex; flex-direction: column;
         }
         .spinner { border: 3px solid rgba(255,255,255,0.3); border-left-color: #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        .spinner-dark { border-color: rgba(0,0,0,0.1); border-left-color: #16a34a; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+        /* 印刷用のスタイル */
+        @media print {
+            body * { visibility: hidden; }
+            .print-area, .print-area * { visibility: visible; }
+            .print-area {
+                position: absolute; left: 0; top: 0; width: 100%;
+                background-color: white; margin: 0; padding: 0;
+            }
+            .no-print { display: none !important; }
+            .page-break { page-break-after: always; margin-bottom: 0 !important; border: none !important; }
+            .app-container { max-width: 100%; background-color: white; }
+        }
     </style>
 </head>
 <body>
@@ -46,29 +60,28 @@
         const { useState, useEffect } = React;
 
         const Icons = {
-            Plus: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
-            Minus: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/></svg>,
-            Check: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 6 9 17l-5-5"/></svg>,
-            Box: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>,
-            ClipboardList: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>,
-            TrendingUp: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
-            Clock: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-            User: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-            AlertTriangle: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>,
-            Users: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-            CreditCard: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>,
-            Star: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-            Award: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>,
-            ShoppingBag: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>,
-            Calendar: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
-            RefreshCw: ({className}) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+            Plus: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+            Minus: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/></svg>,
+            Check: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 6 9 17l-5-5"/></svg>,
+            Box: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>,
+            ClipboardList: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>,
+            TrendingUp: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
+            Clock: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            User: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            AlertTriangle: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>,
+            ShoppingBag: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>,
+            Calendar: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
+            RefreshCw: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>,
+            Printer: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>,
+            FileText: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+            X: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+            Award: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
         };
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
 
         function App() {
             const [activeTab, setActiveTab] = useState('orders');
-
             const [products, setProducts] = useState([]);
             const [orders, setOrders] = useState([]);
             const [analytics, setAnalytics] = useState(null);
@@ -76,6 +89,7 @@
             const [isLoadingData, setIsLoadingData] = useState(true);
             const [isFetchingData, setIsFetchingData] = useState(false);
 
+            // 在庫管理用のState
             const [selectedProductId, setSelectedProductId] = useState('');
             const [type, setType] = useState('add'); 
             const [amount, setAmount] = useState(1);
@@ -83,12 +97,23 @@
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [message, setMessage] = useState('');
 
-            // 月指定（初期値は今月）
+            // 月指定
             const todayMonth = new Date().toISOString().slice(0, 7);
             const [viewStartMonth, setViewStartMonth] = useState(todayMonth);
-            const [viewEndMonth, setViewEndMonth] = useState(todayMonth); // ★追加: 終了月
+            const [viewEndMonth, setViewEndMonth] = useState(todayMonth);
 
-            // ★修正: GASへリクエストを送る際に endMonth も一緒に送る
+            // UIトグル用のState (NEW)
+            const [isPastOrdersOpen, setIsPastOrdersOpen] = useState(false);
+            const [showAllProductsModal, setShowAllProductsModal] = useState(false);
+            const [showAllCustomersModal, setShowAllCustomersModal] = useState(false);
+            const [searchCustomer, setSearchCustomer] = useState("");
+
+            // モーダル・印刷管理用のState
+            const [printOrders, setPrintOrders] = useState([]); // 印刷対象の注文
+            const [printType, setPrintType] = useState('invoice'); // 'invoice' or 'receipt'
+            const [printName, setPrintName] = useState(''); // 単一印刷時の宛名編集用
+            const [showCustomerModal, setShowCustomerModal] = useState(null); // VIPカルテ表示用
+
             const fetchData = async (startMonth, endMonth) => {
                 setIsFetchingData(true);
                 try {
@@ -100,11 +125,9 @@
                         alert("データの取得に失敗しました。");
                         return;
                     }
-
                     if (data.products) setProducts(data.products);
                     if (data.orders) setOrders(data.orders);
                     if (data.analytics) setAnalytics(data.analytics);
-                    
                 } catch (error) {
                     console.error("通信エラー:", error);
                     alert("通信エラーが発生しました。");
@@ -114,18 +137,12 @@
                 }
             };
 
-            // 月の期間が変更されたら再取得
             useEffect(() => {
-                // startMonth が endMonth より未来にならないように制御
-                if (viewStartMonth > viewEndMonth) {
-                    setViewEndMonth(viewStartMonth);
-                }
+                if (viewStartMonth > viewEndMonth) setViewEndMonth(viewStartMonth);
                 fetchData(viewStartMonth, viewEndMonth);
             }, [viewStartMonth, viewEndMonth]);
 
-            const handleRefresh = () => {
-                fetchData(viewStartMonth, viewEndMonth);
-            };
+            const handleRefresh = () => fetchData(viewStartMonth, viewEndMonth);
 
             const handleActionClick = (productId, actionType) => {
                 setSelectedProductId(productId);
@@ -138,7 +155,6 @@
             const handleSubmitStock = async () => {
                 if (!selectedProductId) return alert("商品を選択してください");
                 setIsSubmitting(true);
-                
                 try {
                     await fetch(GAS_URL, {
                         method: "POST",
@@ -151,17 +167,12 @@
                             memo: stockMemo 
                         })
                     });
-
                     setMessage(`${amount}件の${type === 'add' ? '追加' : '破棄'}を記録しました！`);
                     setTimeout(() => setMessage(''), 3000);
-                    
                     fetchData(viewStartMonth, viewEndMonth);
-                    
-                    setAmount(1); 
-                    setStockMemo(''); 
+                    setAmount(1); setStockMemo(''); 
                 } catch(error) {
                     alert("エラーが発生しました。");
-                    console.error(error);
                 } finally {
                     setIsSubmitting(false);
                 }
@@ -169,36 +180,188 @@
 
             const toggleOrderStatus = async (orderId, currentStatus) => {
                 const nextStatus = currentStatus === '未対応' ? '準備完了' : currentStatus === '準備完了' ? '受渡済' : '未対応';
-                
                 setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: nextStatus } : o));
-
                 try {
                     await fetch(GAS_URL, {
                         method: "POST",
                         headers: { "Content-Type": "text/plain;charset=utf-8" },
-                        body: JSON.stringify({
-                            action: "statusUpdate",
-                            orderId: orderId,
-                            newStatus: nextStatus
-                        })
+                        body: JSON.stringify({ action: "statusUpdate", orderId: orderId, newStatus: nextStatus })
                     });
-                    
                     fetchData(viewStartMonth, viewEndMonth);
-                    
                 } catch(error) {
                     alert("ステータス更新に失敗しました。");
                     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: currentStatus } : o));
                 }
             };
 
+            // ======== 印刷用の関数 ========
+            const openPrintPreview = (order, type) => {
+                setPrintOrders([order]);
+                setPrintType(type);
+                setPrintName(order.userName); // デフォルトはLINE名
+            };
+
+            const openBulkPrintPreview = (type) => {
+                // 現在の表示期間のすべての注文（未対応・準備完了・受渡済を含む）
+                if(orders.length === 0) return alert("指定期間に注文がありません。");
+                setPrintOrders(orders);
+                setPrintType(type);
+            };
+
+            const executePrint = () => {
+                window.print();
+            };
+
             if (isLoadingData) {
                 return (
-                    <div className="flex flex-col items-center justify-center min-h-screen bg-f3f4f6 text-gray-500">
-                        <div className="spinner mb-4 border-l-nanairo-dark"></div>
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-500">
+                        <div className="spinner spinner-dark mb-4"></div>
                         <p className="font-bold">最新データを同期中...</p>
                     </div>
                 );
             }
+
+            // ==========================================
+            // UIコンポーネント: 印刷ビュー (PDF/紙出力用)
+            // ==========================================
+            const renderPrintView = () => {
+                if(printOrders.length === 0) return null;
+                const today = new Date().toLocaleDateString('ja-JP');
+
+                return (
+                    <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col print-area h-screen overflow-y-auto">
+                        <div className="no-print bg-white shadow-md p-4 flex flex-col sm:flex-row justify-between items-center gap-3 sticky top-0 z-10 border-b border-gray-200">
+                            <button onClick={() => setPrintOrders([])} className="text-gray-500 hover:text-gray-800 font-bold flex items-center gap-1">
+                                <Icons.X className="w-5 h-5"/> 閉じる
+                            </button>
+                            
+                            {/* 単一印刷の場合は宛名を編集可能にする */}
+                            {printOrders.length === 1 && (
+                                <div className="flex items-center gap-2 flex-1 max-w-sm">
+                                    <label className="text-sm font-bold text-gray-600 whitespace-nowrap">宛名編集:</label>
+                                    <input type="text" value={printName} onChange={e => setPrintName(e.target.value)} 
+                                        className="border border-gray-300 rounded p-1.5 w-full text-sm font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                </div>
+                            )}
+                            {printOrders.length > 1 && (
+                                <div className="text-sm font-bold text-gray-600">一括印刷: {printOrders.length}件</div>
+                            )}
+
+                            <button onClick={executePrint} className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold shadow-sm active:bg-blue-700 flex items-center gap-2">
+                                <Icons.Printer className="w-5 h-5"/> 印刷を実行
+                            </button>
+                        </div>
+
+                        <div className="p-4 sm:p-8">
+                            {printOrders.map((order, index) => {
+                                // 宛名は、単一印刷なら編集中のもの、一括なら注文者の名前
+                                const targetName = printOrders.length === 1 ? printName : order.userName;
+                                
+                                return (
+                                    <div key={order.id} className="page-break bg-white p-8 sm:p-12 shadow-sm rounded-lg border border-gray-200 mb-8 max-w-[800px] mx-auto text-gray-800 relative min-h-[250mm]">
+                                        {/* インボイス番号などダミー情報 */}
+                                        <div className="text-right text-sm text-gray-500 mb-6">
+                                            発行日: {today}<br/>
+                                            登録番号: T1234567890123
+                                        </div>
+
+                                        <div className="flex justify-between items-start mb-10 border-b-2 border-gray-800 pb-4">
+                                            <div>
+                                                <h1 className="text-2xl font-bold border-b border-gray-400 inline-block pb-1 min-w-[200px]">
+                                                    {targetName} <span className="text-lg">様</span>
+                                                </h1>
+                                            </div>
+                                            <div className="text-right">
+                                                <h2 className="text-3xl font-bold tracking-widest text-gray-800 mb-2">
+                                                    {printType === 'invoice' ? '納 品 書' : '領 収 書'}
+                                                </h2>
+                                                <div className="font-bold text-base">なないろ菜・マイクロハーブ</div>
+                                                <div className="text-xs text-gray-600 mt-1">
+                                                    〒998-0000 山形県酒田市〇〇1-2-3<br/>
+                                                    TEL: 0234-XX-XXXX
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {printType === 'receipt' ? (
+                                            <div className="mb-12">
+                                                <div className="flex items-end gap-4 mb-4 border-b border-gray-400 pb-2">
+                                                    <span className="text-gray-600 font-bold">金額</span>
+                                                    <span className="text-4xl font-bold">¥{(order.totalPrice || 0).toLocaleString()} <span className="text-lg">-</span></span>
+                                                </div>
+                                                <div className="text-gray-600">但 マイクロハーブ代として 上記正に領収いたしました。</div>
+                                            </div>
+                                        ) : (
+                                            <div className="mb-10">
+                                                <div className="font-bold text-gray-700 mb-2">下記の通り納品申し上げます。</div>
+                                                <div className="flex items-end gap-4 mb-6">
+                                                    <span className="text-gray-600 font-bold">御請求金額</span>
+                                                    <span className="text-3xl font-bold border-b border-gray-400 pb-1 px-4">¥{(order.totalPrice || 0).toLocaleString()}</span>
+                                                    <span className="text-sm text-gray-500">(税込)</span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 明細テーブル */}
+                                        <table className="w-full text-left border-collapse border border-gray-300 text-sm">
+                                            <thead className="bg-gray-100">
+                                                <tr>
+                                                    <th className="border border-gray-300 p-2 text-center w-10">No.</th>
+                                                    <th className="border border-gray-300 p-2">品名</th>
+                                                    <th className="border border-gray-300 p-2 text-right w-20">数量</th>
+                                                    <th className="border border-gray-300 p-2 text-right w-24">単価(税込)</th>
+                                                    <th className="border border-gray-300 p-2 text-right w-28">金額(税込)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {order.itemsList && order.itemsList.map((item, i) => {
+                                                    // 単価を逆算 (厳密には商品マスタから引くべきですが、履歴ベースの概算)
+                                                    // 商品データがあればそれを使う
+                                                    const product = products.find(p => p.name === item.name);
+                                                    const unitPrice = product ? product.price : (item.qty > 0 ? (order.totalPrice/order.itemsList.reduce((acc,curr)=>acc+curr.qty,0)) : 0); // 簡易計算
+                                                    const itemTotal = unitPrice * item.qty;
+
+                                                    return (
+                                                        <tr key={i}>
+                                                            <td className="border border-gray-300 p-2 text-center">{i + 1}</td>
+                                                            <td className="border border-gray-300 p-2 font-bold">{item.name}</td>
+                                                            <td className="border border-gray-300 p-2 text-right">{item.qty} P</td>
+                                                            <td className="border border-gray-300 p-2 text-right">¥{unitPrice.toLocaleString()}</td>
+                                                            <td className="border border-gray-300 p-2 text-right">¥{itemTotal.toLocaleString()}</td>
+                                                        </tr>
+                                                    )
+                                                })}
+                                                {/* 空行を入れて体裁を整える */}
+                                                {[...Array(Math.max(0, 5 - (order.itemsList?.length || 0)))].map((_, i) => (
+                                                    <tr key={`empty-${i}`}>
+                                                        <td className="border border-gray-300 p-2">&nbsp;</td>
+                                                        <td className="border border-gray-300 p-2"></td>
+                                                        <td className="border border-gray-300 p-2"></td>
+                                                        <td className="border border-gray-300 p-2"></td>
+                                                        <td className="border border-gray-300 p-2"></td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <th colSpan="3" className="border border-gray-300 p-2 text-right text-gray-500 font-normal">税率: 8%対象</th>
+                                                    <th className="border border-gray-300 p-2 text-right bg-gray-50">合計</th>
+                                                    <th className="border border-gray-300 p-2 text-right font-bold text-base bg-gray-50">¥{(order.totalPrice || 0).toLocaleString()}</th>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                        
+                                        <div className="absolute bottom-12 left-12 right-12 text-center text-xs text-gray-400 border-t border-gray-200 pt-4">
+                                            いつも新鮮なマイクロハーブをご利用いただき、誠にありがとうございます。
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            };
+
 
             // ==========================================
             // UIコンポーネント: 1. 注文管理タブ
@@ -206,36 +369,37 @@
             const renderOrdersTab = () => {
                 const isCurrentMonth = viewStartMonth === todayMonth;
                 const activeOrders = orders.filter(o => o.status !== '受渡済');
-                
-                // 今回は「期間」で取得しているので、取得したものをそのまま全て表示します
                 const pastOrders = orders.filter(o => o.status === '受渡済');
 
                 return (
                     <div className="animate-slide-up space-y-5">
-                        <div className="flex justify-between items-center mb-4">
-                            {/* ★修正: 期間指定ができるカレンダー入力枠 */}
-                            <div className="flex flex-wrap items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm w-fit">
-                                <Icons.Calendar className="w-4 h-4 text-gray-500" />
-                                <input 
-                                    type="month" 
-                                    value={viewStartMonth} 
-                                    onChange={(e) => setViewStartMonth(e.target.value)}
-                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24"
-                                />
-                                <span className="text-gray-400 font-bold">〜</span>
-                                <input 
-                                    type="month" 
-                                    value={viewEndMonth} 
-                                    onChange={(e) => setViewEndMonth(e.target.value)}
-                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24"
-                                />
+                        <div className="flex flex-col gap-3 mb-4">
+                            <div className="flex justify-between items-center">
+                                {/* 期間指定 */}
+                                <div className="flex flex-wrap items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm w-fit">
+                                    <Icons.Calendar className="w-4 h-4 text-gray-500" />
+                                    <input type="month" value={viewStartMonth} onChange={(e) => setViewStartMonth(e.target.value)}
+                                        className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24" />
+                                    <span className="text-gray-400 font-bold">〜</span>
+                                    <input type="month" value={viewEndMonth} onChange={(e) => setViewEndMonth(e.target.value)}
+                                        className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24" />
+                                </div>
+                                <button onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100">
+                                    <Icons.RefreshCw className={`w-5 h-5 ${isFetchingData ? 'animate-spin' : ''}`} />
+                                </button>
                             </div>
-                            <button onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100">
-                                <Icons.RefreshCw className={`w-5 h-5 ${isFetchingData ? 'animate-spin' : ''}`} />
-                            </button>
+                            
+                            {/* 一括印刷ボタン */}
+                            <div className="flex gap-2">
+                                <button onClick={() => openBulkPrintPreview('invoice')} className="flex-1 bg-white border border-gray-300 rounded-lg py-2 text-sm font-bold text-gray-700 shadow-sm active:bg-gray-50 flex justify-center items-center gap-2">
+                                    <Icons.FileText className="w-4 h-4 text-blue-500"/> 納品書 一括出力
+                                </button>
+                                <button onClick={() => openBulkPrintPreview('receipt')} className="flex-1 bg-white border border-gray-300 rounded-lg py-2 text-sm font-bold text-gray-700 shadow-sm active:bg-gray-50 flex justify-center items-center gap-2">
+                                    <Icons.FileText className="w-4 h-4 text-green-500"/> 領収書 一括出力
+                                </button>
+                            </div>
                         </div>
 
-                        {/* 今月が含まれる期間を見ている時だけ「未対応」を表示 */}
                         {isCurrentMonth && (
                             <>
                                 <div className="flex justify-between items-end border-l-4 border-nanairo-dark pl-2">
@@ -287,14 +451,21 @@
                                                         <span>{order.memo}</span>
                                                     </div>
                                                 )}
-
-                                                <button 
-                                                    onClick={() => toggleOrderStatus(order.id, order.status)}
-                                                    className={`w-full py-3 rounded-xl font-bold transition-colors shadow-sm
-                                                        ${order.status === '未対応' ? 'bg-nanairo-light text-nanairo-dark border border-nanairo hover:bg-green-100' : 'bg-gray-800 text-white hover:bg-gray-900'}`}
-                                                >
-                                                    {order.status === '未対応' ? '準備完了にする' : 'お客様に受渡済にする'}
-                                                </button>
+                                                
+                                                {/* 帳票ボタンとステータス更新ボタン */}
+                                                <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                                                    <div className="flex gap-1 flex-1">
+                                                        <button onClick={() => openPrintPreview(order, 'invoice')} className="flex-1 bg-gray-50 border border-gray-200 rounded-lg text-[11px] font-bold text-gray-600 active:bg-gray-100 flex items-center justify-center gap-1 h-10 shadow-sm">
+                                                            <Icons.FileText className="w-3.5 h-3.5"/>納品書
+                                                        </button>
+                                                        <button onClick={() => openPrintPreview(order, 'receipt')} className="flex-1 bg-gray-50 border border-gray-200 rounded-lg text-[11px] font-bold text-gray-600 active:bg-gray-100 flex items-center justify-center gap-1 h-10 shadow-sm">
+                                                            <Icons.FileText className="w-3.5 h-3.5"/>領収書
+                                                        </button>
+                                                    </div>
+                                                    <button onClick={() => toggleOrderStatus(order.id, order.status)} className={`flex-[1.5] h-10 rounded-lg font-bold text-sm transition-colors shadow-sm ${order.status === '未対応' ? 'bg-nanairo-light text-nanairo-dark border border-nanairo hover:bg-green-100' : 'bg-gray-800 text-white hover:bg-gray-900'}`}>
+                                                        {order.status === '未対応' ? '準備完了にする' : '受渡済にする'}
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -306,32 +477,45 @@
                         )}
 
                         <div className={isCurrentMonth ? "pt-4 border-t border-gray-200" : ""}>
-                            <h3 className="font-bold text-gray-600 mb-3 text-sm flex items-center gap-2">
-                                <Icons.ClipboardList className="w-4 h-4" /> 
-                                受渡済みの注文
-                            </h3>
+                            <button onClick={() => setIsPastOrdersOpen(!isPastOrdersOpen)} className="w-full flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm active:bg-gray-100 mb-2">
+                                <h3 className="font-bold text-gray-600 text-sm flex items-center gap-2">
+                                    <Icons.ClipboardList className="w-4 h-4" /> 受渡済みの注文 ({pastOrders.length}件)
+                                </h3>
+                                <span className="text-gray-400 font-bold text-xs">{isPastOrdersOpen ? '閉じる ▲' : '一覧を見る ▼'}</span>
+                            </button>
                             
-                            {pastOrders.length === 0 ? (
-                                <div className="text-center py-10 bg-gray-50 rounded-xl text-gray-500 text-sm border border-gray-200">
-                                    指定した期間の履歴はありません。
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {pastOrders.map(order => (
-                                        <div key={order.id} className="bg-white border border-gray-200 p-3 rounded-lg shadow-sm flex justify-between items-center opacity-80">
-                                            <div>
-                                                <div className="font-bold text-gray-700 text-sm mb-1">{order.userName} 様 <span className="text-xs font-normal text-gray-400 ml-2">({order.orderDate})</span></div>
-                                                <div className="text-xs text-gray-500">
-                                                    {order.itemsList && order.itemsList.map(i => `${i.name}×${i.qty}`).join(', ')}
+                            {isPastOrdersOpen && (
+                                pastOrders.length === 0 ? (
+                                    <div className="text-center py-10 bg-gray-50 rounded-xl text-gray-500 text-sm border border-gray-200">指定した期間の履歴はありません。</div>
+                                ) : (
+                                    <div className="space-y-2 mt-2">
+                                        {pastOrders.map(order => (
+                                            <div key={order.id} className="bg-white border border-gray-200 p-3 rounded-lg shadow-sm">
+                                                <div className="flex justify-between items-center opacity-80 mb-2">
+                                                    <div>
+                                                        <div className="font-bold text-gray-700 text-sm mb-1">{order.userName} 様 <span className="text-xs font-normal text-gray-400 ml-2">({order.orderDate})</span></div>
+                                                        <div className="text-xs text-gray-500">
+                                                            {order.itemsList && order.itemsList.map(i => `${i.name}×${i.qty}`).join(', ')}
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right flex flex-col items-end gap-1">
+                                                        <div className="font-bold text-sm text-gray-800">¥{(order.totalPrice || 0).toLocaleString()}</div>
+                                                        <button onClick={() => toggleOrderStatus(order.id, order.status)} className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border active:bg-gray-200 mt-1">戻す</button>
+                                                    </div>
+                                                </div>
+                                                {/* 受渡済でも帳票を出せるようにする */}
+                                                <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-gray-100">
+                                                    <button onClick={() => openPrintPreview(order, 'invoice')} className="text-[10px] font-bold text-gray-500 border border-gray-300 bg-white px-2 py-1 rounded flex items-center gap-1 active:bg-gray-50">
+                                                        <Icons.Printer className="w-3 h-3"/>納品書
+                                                    </button>
+                                                    <button onClick={() => openPrintPreview(order, 'receipt')} className="text-[10px] font-bold text-gray-500 border border-gray-300 bg-white px-2 py-1 rounded flex items-center gap-1 active:bg-gray-50">
+                                                        <Icons.Printer className="w-3 h-3"/>領収書
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div className="text-right flex flex-col items-end gap-1">
-                                                <div className="font-bold text-sm text-gray-800">¥{(order.totalPrice || 0).toLocaleString()}</div>
-                                                <button onClick={() => toggleOrderStatus(order.id, order.status)} className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border active:bg-gray-200 mt-1">戻す</button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                        ))}
+                                    </div>
+                                )
                             )}
                         </div>
                     </div>
@@ -431,33 +615,25 @@
             );
 
             // ==========================================
-            // UIコンポーネント: 3. 分析タブ
+            // UIコンポーネント: 3. 分析タブ (VIP・ロス率追加)
             // ==========================================
             const renderAnalyticsTab = () => {
                 const formatMonth = (m) => m ? m.replace('-', '年') + '月' : '';
                 const isSingleMonth = viewStartMonth === viewEndMonth;
                 const periodText = isSingleMonth ? formatMonth(viewStartMonth) : `${formatMonth(viewStartMonth)} 〜 ${formatMonth(viewEndMonth)}`;
 
-                const anData = analytics || { monthlySales: 0, orderCount: 0, averageSpend: 0, topProducts: [], lossAmount: 0, worstLossProducts: [] };
+                const anData = analytics || { monthlySales: 0, orderCount: 0, averageSpend: 0, topProducts: [], lossAmount: 0, topCustomers: [], stockStats: [] };
 
                 return (
                     <div className="animate-slide-up space-y-5">
                         <div className="flex justify-between items-center mb-4">
                             <div className="flex flex-wrap items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm w-fit">
                                 <Icons.Calendar className="w-4 h-4 text-gray-500" />
-                                <input 
-                                    type="month" 
-                                    value={viewStartMonth} 
-                                    onChange={(e) => setViewStartMonth(e.target.value)}
-                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24"
-                                />
+                                <input type="month" value={viewStartMonth} onChange={(e) => setViewStartMonth(e.target.value)}
+                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24" />
                                 <span className="text-gray-400 font-bold">〜</span>
-                                <input 
-                                    type="month" 
-                                    value={viewEndMonth} 
-                                    onChange={(e) => setViewEndMonth(e.target.value)}
-                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24"
-                                />
+                                <input type="month" value={viewEndMonth} onChange={(e) => setViewEndMonth(e.target.value)}
+                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24" />
                             </div>
                             <button onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100">
                                 <Icons.RefreshCw className={`w-5 h-5 ${isFetchingData ? 'animate-spin' : ''}`} />
@@ -469,6 +645,7 @@
                             <span className="text-xs font-bold text-gray-500">{periodText}</span>
                         </div>
                         
+                        {/* 基本指標 */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                                 <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.TrendingUp className="w-3 h-3"/> 指定期間の売上</div>
@@ -479,81 +656,248 @@
                                 <div className="text-2xl font-bold text-gray-900 tracking-tight">{anData.orderCount} <span className="text-sm font-normal text-gray-500">件</span></div>
                             </div>
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.CreditCard className="w-3 h-3"/> 平均客単価</div>
+                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.User className="w-3 h-3"/> 平均客単価</div>
                                 <div className="text-xl font-bold text-gray-900 tracking-tight">¥{anData.averageSpend.toLocaleString()}</div>
                             </div>
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-red-100 bg-red-50/30">
                                 <div className="text-xs text-red-600 font-bold mb-1 flex items-center gap-1"><Icons.AlertTriangle className="w-3 h-3"/> 推定ロス金額</div>
-                                {/* ★修正: 取得した本物のロス金額を表示 */}
                                 <div className="text-xl font-bold text-red-700 tracking-tight">¥{anData.lossAmount.toLocaleString()}</div>
                             </div>
                         </div>
 
+                        {/* 指定期間の人気商品 (復元・すべて見る追加) */}
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                             <h3 className="font-bold text-gray-700 text-sm mb-4 flex items-center gap-2"><Icons.ShoppingBag className="w-4 h-4 text-blue-500"/> 指定期間の人気商品</h3>
                             <div className="space-y-4">
-                                {anData.topProducts.length === 0 ? (
+                                {anData.topProducts && anData.topProducts.length === 0 ? (
                                     <p className="text-sm text-gray-500 text-center py-4">データがありません</p>
                                 ) : (
-                                    anData.topProducts.map((p, idx) => {
-                                        const maxQty = anData.topProducts[0].qty || 1;
-                                        const percent = Math.max(10, Math.round((p.qty / maxQty) * 100));
-                                        const colors = ['bg-blue-500', 'bg-blue-400', 'bg-blue-300', 'bg-gray-400', 'bg-gray-300'];
-                                        return (
-                                            <div key={p.name}>
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <div className="text-sm font-bold text-gray-800 flex items-center gap-2"><span className="text-gray-400">{idx + 1}.</span> {p.name}</div>
-                                                    <div className="text-sm font-bold text-gray-600">{p.qty} P</div>
+                                    <>
+                                        {anData.topProducts && anData.topProducts.slice(0, 5).map((p, idx) => {
+                                            const maxQty = anData.topProducts[0].qty || 1;
+                                            const percent = Math.max(10, Math.round((p.qty / maxQty) * 100));
+                                            const colors = ['bg-blue-500', 'bg-blue-400', 'bg-blue-300', 'bg-gray-400', 'bg-gray-300'];
+                                            return (
+                                                <div key={p.name}>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <div className="text-sm font-bold text-gray-800 flex items-center gap-2"><span className="text-gray-400">{idx + 1}.</span> {p.name}</div>
+                                                        <div className="text-sm font-bold text-gray-600">{p.qty} P</div>
+                                                    </div>
+                                                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                                        <div className={`${colors[idx] || colors[4]} h-full transition-all duration-1000`} style={{ width: `${percent}%` }}></div>
+                                                    </div>
                                                 </div>
-                                                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                                                    <div className={`${colors[idx] || colors[4]} h-full transition-all duration-1000`} style={{ width: `${percent}%` }}></div>
-                                                </div>
-                                            </div>
-                                        )
-                                    })
+                                            )
+                                        })}
+                                        {anData.topProducts && anData.topProducts.length > 5 && (
+                                            <button onClick={() => setShowAllProductsModal(true)} className="w-full text-center text-xs font-bold text-blue-500 py-2 bg-blue-50 rounded-lg active:bg-blue-100 mt-2">
+                                                すべて見る ({anData.topProducts.length}件)
+                                            </button>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
 
-                        {/* 警告・アラートセクション */}
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-red-200">
-                            <h3 className="font-bold text-red-700 text-sm mb-2 flex items-center gap-1"><Icons.AlertTriangle className="w-4 h-4"/> 破棄ロス警戒</h3>
-                            <p className="text-[10px] text-gray-500 mb-2">指定期間内で、破棄登録が多い商品です。</p>
-                            
-                            {anData.worstLossProducts && anData.worstLossProducts.length > 0 ? (
-                                <ul className="space-y-1">
-                                    {anData.worstLossProducts.map((p, idx) => (
-                                        <li key={idx} className="flex justify-between items-center bg-red-50 p-2 rounded border border-red-100">
-                                            <span className="font-bold text-xs text-gray-800">{p.name}</span>
-                                            <span className="text-xs font-bold text-red-600">累計破棄: {p.qty} P</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-xs text-gray-500 text-center py-2 bg-gray-50 rounded">破棄の記録はありません。</p>
-                            )}
+                        {/* 優良顧客ランキング (VIP・すべて見る追加) */}
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-yellow-200">
+                            <h3 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2"><Icons.Award className="w-4 h-4 text-yellow-500"/> 優良顧客ランキング</h3>
+                            <p className="text-[10px] text-gray-500 mb-3">タップすると購入カルテを確認できます。</p>
+                            <div className="space-y-2">
+                                {anData.topCustomers && anData.topCustomers.length > 0 ? (
+                                    <>
+                                        {anData.topCustomers.slice(0, 5).map((customer, idx) => (
+                                            <div key={customer.userId} onClick={() => setShowCustomerModal(customer)} 
+                                                className="flex justify-between items-center bg-gray-50 p-2.5 rounded-lg border border-gray-100 cursor-pointer active:bg-gray-100">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-yellow-400 text-yellow-900' : idx === 1 ? 'bg-gray-300 text-gray-800' : idx === 2 ? 'bg-orange-300 text-orange-900' : 'bg-gray-200 text-gray-600'}`}>{idx + 1}</div>
+                                                    <div>
+                                                        <div className="font-bold text-sm text-gray-800">{customer.userName} 様</div>
+                                                        <div className="text-[10px] text-gray-500">注文回数: {customer.orderCount}回</div>
+                                                    </div>
+                                                </div>
+                                                <div className="font-bold text-nanairo-dark">¥{customer.totalSpend.toLocaleString()}</div>
+                                            </div>
+                                        ))}
+                                        {anData.topCustomers.length > 5 && (
+                                            <button onClick={() => setShowAllCustomersModal(true)} className="w-full text-center text-xs font-bold text-yellow-600 py-2 bg-yellow-50 rounded-lg active:bg-yellow-100 mt-2">
+                                                すべて見る ({anData.topCustomers.length}件)
+                                            </button>
+                                        )}
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-gray-500 text-center py-4">データがありません</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* ロス率（歩留まり）の可視化 */}
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2"><Icons.AlertTriangle className="w-4 h-4 text-orange-500"/> 商品別 ロス率</h3>
+                            <p className="text-[10px] text-gray-500 mb-3">指定期間内の「収穫量」に対する「破棄量」の割合です。</p>
+                            <div className="space-y-3">
+                                {anData.stockStats && anData.stockStats.length > 0 ? (
+                                    anData.stockStats.map((stat, idx) => {
+                                        // ロス率によって色を変える
+                                        const barColor = stat.lossRate > 30 ? 'bg-red-500' : stat.lossRate > 10 ? 'bg-orange-400' : 'bg-green-500';
+                                        return (
+                                            <div key={idx}>
+                                                <div className="flex justify-between items-end mb-1">
+                                                    <div className="text-sm font-bold text-gray-800">{stat.name}</div>
+                                                    <div className="text-xs text-gray-600">
+                                                        <span className="font-bold text-red-600">{stat.lossRate}%</span> <span className="text-[10px]">(ロス{stat.lossQty} / 収穫{stat.harvestQty})</span>
+                                                    </div>
+                                                </div>
+                                                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                                    <div className={`${barColor} h-full transition-all duration-1000`} style={{ width: `${stat.lossRate}%` }}></div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                                ) : (
+                                    <p className="text-sm text-gray-500 text-center py-4">データがありません</p>
+                                )}
+                            </div>
                         </div>
 
                     </div>
                 );
             };
 
+            // 顧客別購入カルテモーダル (NEW)
+            const renderCustomerModal = () => {
+                if (!showCustomerModal) return null;
+                const c = showCustomerModal;
+                return (
+                    <div className="fixed inset-0 z-50 bg-black/50 flex flex-col justify-end items-center no-print">
+                        <div className="bg-white rounded-t-2xl w-full max-w-[600px] max-h-[80vh] flex flex-col animate-slide-up">
+                            <div className="px-4 py-3 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-2xl z-10 shrink-0">
+                                <h2 className="font-bold text-base flex items-center gap-2"><Icons.User className="w-5 h-5" />購入カルテ</h2>
+                                <button onClick={() => setShowCustomerModal(null)} className="p-1 bg-gray-100 rounded-full"><Icons.X className="w-5 h-5" /></button>
+                            </div>
+                            <div className="overflow-y-auto p-5">
+                                <h3 className="text-xl font-bold text-gray-900 border-b-2 border-gray-800 inline-block pb-1 pr-4 mb-6">{c.userName} 様</h3>
+                                
+                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                        <div className="text-xs font-bold text-blue-700 mb-1">期間内 累計購入額</div>
+                                        <div className="text-xl font-bold text-blue-900">¥{c.totalSpend.toLocaleString()}</div>
+                                    </div>
+                                    <div className="bg-green-50 p-3 rounded-lg border border-green-100">
+                                        <div className="text-xs font-bold text-green-700 mb-1">期間内 注文回数</div>
+                                        <div className="text-xl font-bold text-green-900">{c.orderCount} <span className="text-sm">回</span></div>
+                                    </div>
+                                </div>
+
+                                <h4 className="font-bold text-gray-700 text-sm mb-3 border-b border-gray-200 pb-2">よく買っている商品</h4>
+                                <ul className="space-y-2">
+                                    {Object.entries(c.items).sort((a,b)=>b[1]-a[1]).map(([itemName, qty]) => (
+                                        <li key={itemName} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                            <span className="font-bold text-sm text-gray-800">{itemName}</span>
+                                            <span className="font-bold text-gray-600 bg-white px-2 py-1 rounded shadow-sm text-xs">累計 {qty} P</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            // 人気商品 全件表示モーダル (NEW)
+            const renderAllProductsModal = () => {
+                if (!showAllProductsModal) return null;
+                const products = analytics?.topProducts || [];
+                const maxQty = products.length > 0 ? products[0].qty : 1;
+                return (
+                    <div className="fixed inset-0 z-50 bg-black/50 flex flex-col justify-end items-center no-print">
+                        <div className="bg-white rounded-t-2xl w-full max-w-[600px] max-h-[80vh] flex flex-col animate-slide-up">
+                            <div className="px-4 py-3 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-2xl z-10 shrink-0">
+                                <h2 className="font-bold text-base flex items-center gap-2"><Icons.ShoppingBag className="w-5 h-5 text-blue-500" />商品ランキング全件</h2>
+                                <button onClick={() => setShowAllProductsModal(false)} className="p-1 bg-gray-100 rounded-full"><Icons.X className="w-5 h-5" /></button>
+                            </div>
+                            <div className="overflow-y-auto p-5 space-y-4">
+                                {products.map((p, idx) => {
+                                    const percent = Math.max(5, Math.round((p.qty / maxQty) * 100));
+                                    return (
+                                        <div key={p.name}>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <div className="text-sm font-bold text-gray-800 flex items-center gap-2"><span className="text-gray-400">{idx + 1}.</span> {p.name}</div>
+                                                <div className="text-sm font-bold text-gray-600">{p.qty} P</div>
+                                            </div>
+                                            <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                                                <div className="bg-blue-400 h-full" style={{ width: `${percent}%` }}></div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            // 顧客ランキング 全件表示・検索モーダル (NEW)
+            const renderAllCustomersModal = () => {
+                if (!showAllCustomersModal) return null;
+                const allCustomers = analytics?.topCustomers || [];
+                const filtered = allCustomers.filter(c => c.userName.toLowerCase().includes(searchCustomer.toLowerCase()));
+                return (
+                    <div className="fixed inset-0 z-50 bg-black/50 flex flex-col justify-end items-center no-print">
+                        <div className="bg-white rounded-t-2xl w-full max-w-[600px] max-h-[90vh] flex flex-col animate-slide-up">
+                            <div className="px-4 py-3 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-2xl z-10 shrink-0">
+                                <h2 className="font-bold text-base flex items-center gap-2"><Icons.Award className="w-5 h-5 text-yellow-500" />顧客ランキング全件</h2>
+                                <button onClick={() => {setShowAllCustomersModal(false); setSearchCustomer("");}} className="p-1 bg-gray-100 rounded-full"><Icons.X className="w-5 h-5" /></button>
+                            </div>
+                            <div className="p-4 border-b bg-gray-50 shrink-0">
+                                <input type="text" placeholder="お客様の名前で検索..." value={searchCustomer} onChange={(e) => setSearchCustomer(e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-nanairo-dark" />
+                            </div>
+                            <div className="overflow-y-auto p-4 space-y-2">
+                                {filtered.length === 0 ? (
+                                    <p className="text-center text-sm text-gray-500 py-4">該当するお客様が見つかりません</p>
+                                ) : (
+                                    filtered.map((customer, idx) => {
+                                        // 検索時は実際の順位を探す
+                                        const rank = allCustomers.findIndex(c => c.userId === customer.userId) + 1;
+                                        return (
+                                            <div key={customer.userId} onClick={() => {setShowAllCustomersModal(false); setShowCustomerModal(customer);}} 
+                                                className="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-200 cursor-pointer active:bg-gray-50 shadow-sm">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-gray-200 text-gray-600">{rank}</div>
+                                                    <div>
+                                                        <div className="font-bold text-sm text-gray-800">{customer.userName} 様</div>
+                                                        <div className="text-[10px] text-gray-500">注文回数: {customer.orderCount}回</div>
+                                                    </div>
+                                                </div>
+                                                <div className="font-bold text-nanairo-dark">¥{customer.totalSpend.toLocaleString()}</div>
+                                            </div>
+                                        )
+                                    })
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+
             return (
                 <div className="app-container">
-                    <header className="sticky top-0 z-30 bg-nanairo-light px-4 py-3 flex justify-between items-center shadow-sm">
+                    <header className="no-print sticky top-0 z-30 bg-nanairo-light px-4 py-3 flex justify-between items-center shadow-sm">
                         <div className="flex items-center gap-2">
                             <div className="w-7 h-7 bg-line rounded-full flex items-center justify-center text-white font-bold text-[9px] tracking-tighter">LINE</div>
                             <span className="font-bold text-gray-800 text-sm">なないろ菜・マイクロハーブ <span className="text-nanairo-dark text-xs ml-1">[管理]</span></span>
                         </div>
                     </header>
 
-                    <main className="flex-1 px-4 pt-4 pb-[120px]">
+                    <main className="no-print flex-1 px-4 pt-4 pb-[120px]">
                         {activeTab === 'orders' && renderOrdersTab()}
                         {activeTab === 'inventory' && renderInventoryTab()}
                         {activeTab === 'analytics' && renderAnalyticsTab()}
                     </main>
 
-                    <div className="fixed bottom-0 left-0 right-0 mx-auto w-full max-w-[600px] bg-white border-t border-gray-200 flex h-[60px] z-40 pb-[env(safe-area-inset-bottom)] box-border">
+                    <div className="no-print fixed bottom-0 left-0 right-0 mx-auto w-full max-w-[600px] bg-white border-t border-gray-200 flex h-[60px] z-40 pb-[env(safe-area-inset-bottom)] box-border">
                         <button onClick={() => setActiveTab('orders')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'orders' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
                             <div className="relative">
                                 <Icons.ClipboardList className="w-6 h-6" />
@@ -572,6 +916,12 @@
                             <span className="text-[10px] font-bold">分析</span>
                         </button>
                     </div>
+
+                    {/* オーバーレイ群 */}
+                    {renderPrintView()}
+                    {renderCustomerModal()}
+                    {renderAllProductsModal()}
+                    {renderAllCustomersModal()}
                 </div>
             );
         }
