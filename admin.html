@@ -98,14 +98,6 @@
             return `R${d.getFullYear() - 2018}.${d.getMonth() + 1}.${d.getDate()}`;
         };
 
-        // 指定した月の末日を和暦で返す関数
-        const toWarekiMonthEnd = (yearMonthStr) => {
-            if (!yearMonthStr) return "";
-            const [year, month] = yearMonthStr.split('-').map(Number);
-            const d = new Date(year, month, 0); 
-            return `R${year - 2018}.${month}.${d.getDate()}`;
-        };
-
         function App() {
             const [activeTab, setActiveTab] = useState('orders'); // 初期タブは注文対応
             const [products, setProducts] = useState([]);
@@ -136,10 +128,15 @@
             const [searchCustomer, setSearchCustomer] = useState("");
 
             const [printOrders, setPrintOrders] = useState([]); 
-            const [printType, setPrintType] = useState('invoice'); // 'invoice', 'receipt', 'monthly_report'
+            const [printType, setPrintType] = useState('invoice'); 
             const [printName, setPrintName] = useState(''); 
-            const [printHonorific, setPrintHonorific] = useState('御中'); // 御中 or 様
+            const [printHonorific, setPrintHonorific] = useState('御中');
             const [showCustomerModal, setShowCustomerModal] = useState(null); 
+            
+            // ★新規追加: 請求明細書用の期間と締日State
+            const [reportStartDate, setReportStartDate] = useState('');
+            const [reportEndDate, setReportEndDate] = useState('');
+            const [reportClosingDate, setReportClosingDate] = useState('');
 
             const fetchData = async (startMonth, endMonth) => {
                 setIsFetchingData(true);
@@ -172,7 +169,6 @@
 
             const handleRefresh = () => fetchData(viewStartMonth, viewEndMonth);
 
-            // ★修正: 入力フォームの位置でピタッと止まるようにスクロール位置を調整
             const handleActionClick = (productId, actionType) => {
                 setSelectedProductId(productId);
                 setType(actionType);
@@ -182,7 +178,6 @@
                 setTimeout(() => {
                     const formEl = document.getElementById('manual-input-form');
                     if (formEl) {
-                        // ヘッダーの高さ分（約70px）を引いて見やすくスクロール
                         const y = formEl.getBoundingClientRect().top + window.scrollY - 70;
                         window.scrollTo({ top: y, behavior: 'smooth' });
                     }
@@ -270,11 +265,23 @@
                 setPrintName(order.userName);
             };
 
+            // ★修正: 請求明細書プレビューを開く際に初期期間をセットする
             const openMonthlyReportPreview = (customer) => {
                 setPrintOrders([customer]); 
                 setPrintType('monthly_report');
                 setPrintName(customer.userName);
                 setPrintHonorific('御中');
+                
+                // 現在の表示期間の初日と末日を初期値としてセット
+                const start = `${viewStartMonth}-01`;
+                const [y, m] = viewEndMonth.split('-').map(Number);
+                const endLastDay = new Date(y, m, 0).getDate();
+                const end = `${viewEndMonth}-${String(endLastDay).padStart(2, '0')}`;
+                
+                setReportStartDate(start);
+                setReportEndDate(end);
+                setReportClosingDate(end); // 締日の初期値も終了日と同じにする
+                
                 setShowCustomerModal(null); 
             };
 
@@ -307,29 +314,58 @@
 
                 if (printType === 'monthly_report') {
                     const customer = printOrders[0];
-                    const totalQty = customer.detailedOrders?.reduce((acc, curr) => acc + curr.qty, 0) || 0;
+                    
+                    // ★新規追加: 選択された開始日と終了日で明細データをフィルタリング
+                    const filteredOrders = customer.detailedOrders?.filter(item => {
+                        return item.date >= reportStartDate && item.date <= reportEndDate;
+                    }) || [];
+
+                    // フィルタ後の合計数量と合計金額を再計算
+                    const totalQty = filteredOrders.reduce((acc, curr) => acc + curr.qty, 0);
+                    const currentTotalSpend = filteredOrders.reduce((acc, curr) => {
+                        const product = products.find(p => p.name === curr.name);
+                        const unitPrice = product ? product.price : 0;
+                        return acc + (unitPrice * curr.qty);
+                    }, 0);
                     
                     return (
                         <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col print-area h-screen overflow-y-auto">
-                            <div className="no-print bg-white shadow-md p-4 flex flex-col sm:flex-row justify-between items-center gap-3 sticky top-0 z-10 border-b border-gray-200">
-                                <button onClick={() => setPrintOrders([])} className="text-gray-500 hover:text-gray-800 font-bold flex items-center gap-1">
-                                    <Icons.X className="w-5 h-5"/> 閉じる
-                                </button>
-                                
-                                <div className="flex items-center gap-2 flex-1 max-w-md">
-                                    <label className="text-sm font-bold text-gray-600 whitespace-nowrap">宛名編集:</label>
-                                    <input type="text" value={printName} onChange={e => setPrintName(e.target.value)} 
-                                        className="border border-gray-300 rounded p-1.5 w-full text-sm font-bold bg-white focus:outline-none" />
-                                    <select value={printHonorific} onChange={e => setPrintHonorific(e.target.value)} className="border border-gray-300 rounded p-1.5 text-sm font-bold bg-white">
-                                        <option value="御中">御中</option>
-                                        <option value="様">様</option>
-                                        <option value="">敬称なし</option>
-                                    </select>
+                            <div className="no-print bg-white shadow-md p-4 flex flex-col items-stretch gap-3 sticky top-0 z-10 border-b border-gray-200">
+                                <div className="flex justify-between items-center w-full">
+                                    <button onClick={() => setPrintOrders([])} className="text-gray-500 hover:text-gray-800 font-bold flex items-center gap-1">
+                                        <Icons.X className="w-5 h-5"/> 閉じる
+                                    </button>
+                                    <button onClick={executePrint} className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold shadow-sm active:bg-blue-700 flex items-center gap-2">
+                                        <Icons.Printer className="w-5 h-5"/> 印刷・PDF保存
+                                    </button>
                                 </div>
-
-                                <button onClick={executePrint} className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold shadow-sm active:bg-blue-700 flex items-center gap-2">
-                                    <Icons.Printer className="w-5 h-5"/> 印刷・PDF保存
-                                </button>
+                                
+                                {/* ★新規追加: 期間設定コントロールパネル */}
+                                <div className="flex flex-wrap items-center gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200 w-full text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <label className="font-bold text-gray-600 whitespace-nowrap">宛名:</label>
+                                        <input type="text" value={printName} onChange={e => setPrintName(e.target.value)} 
+                                            className="border border-gray-300 rounded p-1 w-32 font-bold bg-white focus:outline-none" />
+                                        <select value={printHonorific} onChange={e => setPrintHonorific(e.target.value)} className="border border-gray-300 rounded p-1 font-bold bg-white">
+                                            <option value="御中">御中</option>
+                                            <option value="様">様</option>
+                                            <option value="">なし</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <label className="font-bold text-gray-600 whitespace-nowrap">対象期間:</label>
+                                        <input type="date" value={reportStartDate} onChange={e => setReportStartDate(e.target.value)} className="border border-gray-300 rounded p-1 bg-white" />
+                                        <span className="text-gray-400">〜</span>
+                                        <input type="date" value={reportEndDate} onChange={e => setReportEndDate(e.target.value)} className="border border-gray-300 rounded p-1 bg-white" />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <label className="font-bold text-gray-600 whitespace-nowrap">請求締日:</label>
+                                        <input type="date" value={reportClosingDate} onChange={e => setReportClosingDate(e.target.value)} className="border border-gray-300 rounded p-1 bg-white" />
+                                    </div>
+                                    {filteredOrders.length === 0 && (
+                                        <div className="text-red-500 font-bold ml-auto animate-pulse">※指定期間内にデータがありません</div>
+                                    )}
+                                </div>
                             </div>
                             
                             <div className="p-4 sm:p-8 mt-4">
@@ -353,11 +389,12 @@
                                     <div className="grid grid-cols-3 gap-4 mb-6 max-w-md">
                                         <div className="col-span-2 border border-gray-400 p-2 rounded flex flex-col justify-between">
                                             <span className="text-[10px] text-gray-500 font-bold">合計金額(税込)</span>
-                                            <span className="text-2xl font-bold text-right">¥{customer.totalSpend?.toLocaleString()} <span className="text-sm font-normal">円</span></span>
+                                            <span className="text-2xl font-bold text-right">¥{currentTotalSpend.toLocaleString()} <span className="text-sm font-normal">円</span></span>
                                         </div>
                                         <div className="border border-gray-400 p-2 rounded flex flex-col justify-between bg-gray-50">
                                             <span className="text-[10px] text-gray-500 font-bold">請求締日</span>
-                                            <span className="text-sm font-bold text-center">{toWarekiMonthEnd(viewStartMonth)}</span>
+                                            {/* 締日も和暦に変換して表示 */}
+                                            <span className="text-sm font-bold text-center">{toWareki(reportClosingDate)}</span>
                                         </div>
                                     </div>
                                     
@@ -376,7 +413,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {customer.detailedOrders?.map((item, i) => {
+                                            {filteredOrders.map((item, i) => {
                                                 const product = products.find(p => p.name === item.name);
                                                 const unitPrice = product ? product.price : 0;
                                                 return (
@@ -389,7 +426,7 @@
                                                     </tr>
                                                 );
                                             })}
-                                            {[...Array(Math.max(0, 12 - (customer.detailedOrders?.length || 0)))].map((_, i) => (
+                                            {[...Array(Math.max(0, 12 - filteredOrders.length))].map((_, i) => (
                                                 <tr key={`empty-${i}`}>
                                                     <td className="border border-gray-400 p-2 text-center">&nbsp;</td>
                                                     <td className="border border-gray-400 p-2"></td>
@@ -404,7 +441,7 @@
                                                 <td colSpan="2" className="border border-gray-400 p-2 text-center text-[10px] text-gray-500 font-normal">内訳: 消費税等(8%対象)を含む</td>
                                                 <td className="border border-gray-400 p-2 text-right">{totalQty} P</td>
                                                 <td className="border border-gray-400 p-2 text-right">売上合計</td>
-                                                <td className="border border-gray-400 p-2 text-right text-sm">¥{customer.totalSpend?.toLocaleString()}</td>
+                                                <td className="border border-gray-400 p-2 text-right text-sm">¥{currentTotalSpend.toLocaleString()}</td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -739,7 +776,6 @@
                         </table>
                     </section>
 
-                    {/* ★修正: スクロールの着地点になるようにidを付与 */}
                     <section id="manual-input-form" className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
                         <h2 className="font-bold text-gray-800 mb-4 text-base">手動入力フォーム</h2>
                         <div className="space-y-4">
@@ -975,7 +1011,6 @@
                             </div>
                         </div>
 
-                        {/* ★修正: ロス率の分析セクションを復活 */}
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mt-5">
                             <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2"><Icons.AlertTriangle className="w-4 h-4 text-orange-500"/> 商品別 ロス率</h3>
                             <p className="text-[10px] text-gray-500 mb-3">指定期間内の「収穫量」に対する「破棄量」の割合です。</p>
