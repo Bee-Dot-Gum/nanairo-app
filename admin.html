@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>【管理者用】なないろ菜 ダッシュボード</title>
     
-    <!-- ★修正: スマホ用アプリアイコンの指定 -->
     <link rel="apple-touch-icon" href="https://i.imgur.com/tqZC8OZ.png">
     <link rel="icon" type="image/png" href="https://i.imgur.com/tqZC8OZ.png">
     
@@ -44,10 +43,9 @@
         .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 
-        /* 印刷用のスタイル */
         @media print {
-            @page { margin: 0; } /* ★追加: ブラウザが自動で付けるヘッダー/フッター(URLや日付)を消す設定 */
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } /* ★追加: 背景色などを正確に印刷する設定 */
+            @page { margin: 0; } 
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
             body * { visibility: hidden; }
             .print-area, .print-area * { visibility: visible; }
             .print-area {
@@ -81,7 +79,8 @@
             Printer: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>,
             FileText: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
             X: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
-            Award: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+            Award: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>,
+            XCircle: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
         };
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
@@ -95,7 +94,6 @@
             const [isLoadingData, setIsLoadingData] = useState(true);
             const [isFetchingData, setIsFetchingData] = useState(false);
 
-            // 在庫管理用のState
             const [selectedProductId, setSelectedProductId] = useState('');
             const [type, setType] = useState('add'); 
             const [amount, setAmount] = useState(1);
@@ -103,22 +101,19 @@
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [message, setMessage] = useState('');
 
-            // 月指定
             const todayMonth = new Date().toISOString().slice(0, 7);
             const [viewStartMonth, setViewStartMonth] = useState(todayMonth);
             const [viewEndMonth, setViewEndMonth] = useState(todayMonth);
 
-            // UIトグル用のState (NEW)
             const [isPastOrdersOpen, setIsPastOrdersOpen] = useState(false);
             const [showAllProductsModal, setShowAllProductsModal] = useState(false);
             const [showAllCustomersModal, setShowAllCustomersModal] = useState(false);
             const [searchCustomer, setSearchCustomer] = useState("");
 
-            // モーダル・印刷管理用のState
-            const [printOrders, setPrintOrders] = useState([]); // 印刷対象の注文
-            const [printType, setPrintType] = useState('invoice'); // 'invoice' or 'receipt'
-            const [printName, setPrintName] = useState(''); // 単一印刷時の宛名編集用
-            const [showCustomerModal, setShowCustomerModal] = useState(null); // VIPカルテ表示用
+            const [printOrders, setPrintOrders] = useState([]); 
+            const [printType, setPrintType] = useState('invoice'); 
+            const [printName, setPrintName] = useState(''); 
+            const [showCustomerModal, setShowCustomerModal] = useState(null); 
 
             const fetchData = async (startMonth, endMonth) => {
                 setIsFetchingData(true);
@@ -185,6 +180,8 @@
             };
 
             const toggleOrderStatus = async (orderId, currentStatus) => {
+                if(currentStatus === 'キャンセル') return; // キャンセルからは戻せない
+                
                 const nextStatus = currentStatus === '未対応' ? '準備完了' : currentStatus === '準備完了' ? '受渡済' : '未対応';
                 setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: nextStatus } : o));
                 try {
@@ -200,17 +197,17 @@
                 }
             };
 
-            // ======== 印刷用の関数 ========
             const openPrintPreview = (order, type) => {
                 setPrintOrders([order]);
                 setPrintType(type);
-                setPrintName(order.userName); // デフォルトはLINE名
+                setPrintName(order.userName);
             };
 
             const openBulkPrintPreview = (type) => {
-                // 現在の表示期間のすべての注文（未対応・準備完了・受渡済を含む）
-                if(orders.length === 0) return alert("指定期間に注文がありません。");
-                setPrintOrders(orders);
+                // キャンセルは除外して印刷
+                const printableOrders = orders.filter(o => o.status !== 'キャンセル');
+                if(printableOrders.length === 0) return alert("指定期間に印刷可能な注文がありません。");
+                setPrintOrders(printableOrders);
                 setPrintType(type);
             };
 
@@ -228,7 +225,7 @@
             }
 
             // ==========================================
-            // UIコンポーネント: 印刷ビュー (PDF/紙出力用)
+            // UIコンポーネント: 印刷ビュー
             // ==========================================
             const renderPrintView = () => {
                 if(printOrders.length === 0) return null;
@@ -241,7 +238,6 @@
                                 <Icons.X className="w-5 h-5"/> 閉じる
                             </button>
                             
-                            {/* 単一印刷の場合は宛名を編集可能にする */}
                             {printOrders.length === 1 && (
                                 <div className="flex items-center gap-2 flex-1 max-w-sm">
                                     <label className="text-sm font-bold text-gray-600 whitespace-nowrap">宛名編集:</label>
@@ -257,17 +253,15 @@
                                 <Icons.Printer className="w-5 h-5"/> 印刷を実行
                             </button>
                         </div>
-                        <div className="p-4 sm:p-8 mt-4"> {/* ★修正: margin:0による上部の詰まりを防ぐための余白調整 */}
+                        <div className="p-4 sm:p-8 mt-4">
                             {printOrders.map((order, index) => {
-                                // 宛名は、単一印刷なら編集中のもの、一括なら注文者の名前
                                 const targetName = printOrders.length === 1 ? printName : order.userName;
                                 
                                 return (
-                                    <div key={order.id} className="page-break bg-white p-8 sm:p-12 shadow-sm rounded-lg border border-gray-200 mb-8 max-w-[800px] mx-auto text-gray-800 relative min-h-[250mm] pt-12"> {/* ★修正: pt-12を追加し上部余白を確保 */}
-                                        {/* インボイス番号など */}
+                                    <div key={order.id} className="page-break bg-white p-8 sm:p-12 shadow-sm rounded-lg border border-gray-200 mb-8 max-w-[800px] mx-auto text-gray-800 relative min-h-[250mm] pt-12">
                                         <div className="text-right text-sm text-gray-500 mb-6">
                                             発行日: {today}<br/>
-                                            登録番号: T1234567890123 {/* ←★★ここに実際の13桁の登録番号を上書き入力してください★★ */}
+                                            登録番号: T1234567890123
                                         </div>
 
                                         <div className="flex justify-between items-start mb-10 border-b-2 border-gray-800 pb-4">
@@ -308,7 +302,6 @@
                                             </div>
                                         )}
 
-                                        {/* 明細テーブル */}
                                         <table className="w-full text-left border-collapse border border-gray-300 text-sm">
                                             <thead className="bg-gray-100">
                                                 <tr>
@@ -321,10 +314,8 @@
                                             </thead>
                                             <tbody>
                                                 {order.itemsList && order.itemsList.map((item, i) => {
-                                                    // 単価を逆算 (厳密には商品マスタから引くべきですが、履歴ベースの概算)
-                                                    // 商品データがあればそれを使う
                                                     const product = products.find(p => p.name === item.name);
-                                                    const unitPrice = product ? product.price : (item.qty > 0 ? (order.totalPrice/order.itemsList.reduce((acc,curr)=>acc+curr.qty,0)) : 0); // 簡易計算
+                                                    const unitPrice = product ? product.price : (item.qty > 0 ? (order.totalPrice/order.itemsList.reduce((acc,curr)=>acc+curr.qty,0)) : 0);
                                                     const itemTotal = unitPrice * item.qty;
 
                                                     return (
@@ -337,7 +328,6 @@
                                                         </tr>
                                                     )
                                                 })}
-                                                {/* 空行を入れて体裁を整える */}
                                                 {[...Array(Math.max(0, 5 - (order.itemsList?.length || 0)))].map((_, i) => (
                                                     <tr key={`empty-${i}`}>
                                                         <td className="border border-gray-300 p-2">&nbsp;</td>
@@ -374,14 +364,14 @@
             // ==========================================
             const renderOrdersTab = () => {
                 const isCurrentMonth = viewStartMonth === todayMonth;
-                const activeOrders = orders.filter(o => o.status !== '受渡済');
-                const pastOrders = orders.filter(o => o.status === '受渡済');
+                // ★修正: キャンセルは pastOrders に回す
+                const activeOrders = orders.filter(o => o.status === '未対応' || o.status === '準備完了');
+                const pastOrders = orders.filter(o => o.status === '受渡済' || o.status === 'キャンセル');
 
                 return (
                     <div className="animate-slide-up space-y-5">
                         <div className="flex flex-col gap-3 mb-4">
                             <div className="flex justify-between items-center">
-                                {/* 期間指定 */}
                                 <div className="flex flex-wrap items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm w-fit">
                                     <Icons.Calendar className="w-4 h-4 text-gray-500" />
                                     <input type="month" value={viewStartMonth} onChange={(e) => setViewStartMonth(e.target.value)}
@@ -395,7 +385,6 @@
                                 </button>
                             </div>
                             
-                            {/* 一括印刷ボタン */}
                             <div className="flex gap-2">
                                 <button onClick={() => openBulkPrintPreview('invoice')} className="flex-1 bg-white border border-gray-300 rounded-lg py-2 text-sm font-bold text-gray-700 shadow-sm active:bg-gray-50 flex justify-center items-center gap-2">
                                     <Icons.FileText className="w-4 h-4 text-blue-500"/> 納品書 一括出力
@@ -410,7 +399,7 @@
                             <>
                                 <div className="flex justify-between items-end border-l-4 border-nanairo-dark pl-2">
                                     <h1 className="text-xl font-bold text-gray-800">注文対応</h1>
-                                    <span className="text-sm font-bold text-nanairo-dark bg-nanairo-light px-2 py-1 rounded">未対応: {activeOrders.length}件</span>
+                                    <span className="text-sm font-bold text-nanairo-dark bg-nanairo-light px-2 py-1 rounded">未対応: {activeOrders.filter(o=>o.status==='未対応').length}件</span>
                                 </div>
 
                                 <div className="space-y-4">
@@ -458,7 +447,6 @@
                                                     </div>
                                                 )}
                                                 
-                                                {/* 帳票ボタンとステータス更新ボタン */}
                                                 <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
                                                     <div className="flex gap-1 flex-1">
                                                         <button onClick={() => openPrintPreview(order, 'invoice')} className="flex-1 bg-gray-50 border border-gray-200 rounded-lg text-[11px] font-bold text-gray-600 active:bg-gray-100 flex items-center justify-center gap-1 h-10 shadow-sm">
@@ -485,7 +473,7 @@
                         <div className={isCurrentMonth ? "pt-4 border-t border-gray-200" : ""}>
                             <button onClick={() => setIsPastOrdersOpen(!isPastOrdersOpen)} className="w-full flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm active:bg-gray-100 mb-2">
                                 <h3 className="font-bold text-gray-600 text-sm flex items-center gap-2">
-                                    <Icons.ClipboardList className="w-4 h-4" /> 受渡済みの注文 ({pastOrders.length}件)
+                                    <Icons.ClipboardList className="w-4 h-4" /> 処理済・キャンセル ({pastOrders.length}件)
                                 </h3>
                                 <span className="text-gray-400 font-bold text-xs">{isPastOrdersOpen ? '閉じる ▲' : '一覧を見る ▼'}</span>
                             </button>
@@ -495,31 +483,44 @@
                                     <div className="text-center py-10 bg-gray-50 rounded-xl text-gray-500 text-sm border border-gray-200">指定した期間の履歴はありません。</div>
                                 ) : (
                                     <div className="space-y-2 mt-2">
-                                        {pastOrders.map(order => (
-                                            <div key={order.id} className="bg-white border border-gray-200 p-3 rounded-lg shadow-sm">
-                                                <div className="flex justify-between items-center opacity-80 mb-2">
-                                                    <div>
-                                                        <div className="font-bold text-gray-700 text-sm mb-1">{order.userName} 様 <span className="text-xs font-normal text-gray-400 ml-2">({order.orderDate})</span></div>
-                                                        <div className="text-xs text-gray-500">
-                                                            {order.itemsList && order.itemsList.map(i => `${i.name}×${i.qty}`).join(', ')}
+                                        {pastOrders.map(order => {
+                                            const isCancelled = order.status === 'キャンセル';
+                                            return (
+                                                <div key={order.id} className={`bg-white border p-3 rounded-lg shadow-sm ${isCancelled ? 'border-gray-300 opacity-60' : 'border-gray-200'}`}>
+                                                    <div className="flex justify-between items-center opacity-80 mb-2">
+                                                        <div>
+                                                            <div className="font-bold text-gray-700 text-sm mb-1 flex items-center gap-1">
+                                                                {isCancelled && <Icons.XCircle className="w-4 h-4 text-red-500" />}
+                                                                {order.userName} 様 <span className="text-xs font-normal text-gray-400 ml-1">({order.orderDate})</span>
+                                                            </div>
+                                                            <div className="text-xs text-gray-500">
+                                                                {order.itemsList && order.itemsList.map(i => `${i.name}×${i.qty}`).join(', ')}
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right flex flex-col items-end gap-1">
+                                                            <div className={`font-bold text-sm ${isCancelled ? 'text-gray-500 line-through' : 'text-gray-800'}`}>¥{(order.totalPrice || 0).toLocaleString()}</div>
+                                                            {!isCancelled && (
+                                                                <button onClick={() => toggleOrderStatus(order.id, order.status)} className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border active:bg-gray-200 mt-1">戻す</button>
+                                                            )}
+                                                            {isCancelled && (
+                                                                <span className="text-[10px] font-bold text-red-500 border border-red-200 bg-red-50 px-2 rounded">キャンセル済</span>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                    <div className="text-right flex flex-col items-end gap-1">
-                                                        <div className="font-bold text-sm text-gray-800">¥{(order.totalPrice || 0).toLocaleString()}</div>
-                                                        <button onClick={() => toggleOrderStatus(order.id, order.status)} className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border active:bg-gray-200 mt-1">戻す</button>
-                                                    </div>
+                                                    
+                                                    {!isCancelled && (
+                                                        <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-gray-100">
+                                                            <button onClick={() => openPrintPreview(order, 'invoice')} className="text-[10px] font-bold text-gray-500 border border-gray-300 bg-white px-2 py-1 rounded flex items-center gap-1 active:bg-gray-50">
+                                                                <Icons.Printer className="w-3 h-3"/>納品書
+                                                            </button>
+                                                            <button onClick={() => openPrintPreview(order, 'receipt')} className="text-[10px] font-bold text-gray-500 border border-gray-300 bg-white px-2 py-1 rounded flex items-center gap-1 active:bg-gray-50">
+                                                                <Icons.Printer className="w-3 h-3"/>領収書
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                {/* 受渡済でも帳票を出せるようにする */}
-                                                <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-gray-100">
-                                                    <button onClick={() => openPrintPreview(order, 'invoice')} className="text-[10px] font-bold text-gray-500 border border-gray-300 bg-white px-2 py-1 rounded flex items-center gap-1 active:bg-gray-50">
-                                                        <Icons.Printer className="w-3 h-3"/>納品書
-                                                    </button>
-                                                    <button onClick={() => openPrintPreview(order, 'receipt')} className="text-[10px] font-bold text-gray-500 border border-gray-300 bg-white px-2 py-1 rounded flex items-center gap-1 active:bg-gray-50">
-                                                        <Icons.Printer className="w-3 h-3"/>領収書
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            )
+                                        })}
                                     </div>
                                 )
                             )}
@@ -621,7 +622,7 @@
             );
 
             // ==========================================
-            // UIコンポーネント: 3. 分析タブ (VIP・ロス率追加)
+            // UIコンポーネント: 3. 分析タブ
             // ==========================================
             const renderAnalyticsTab = () => {
                 const formatMonth = (m) => m ? m.replace('-', '年') + '月' : '';
@@ -651,7 +652,6 @@
                             <span className="text-xs font-bold text-gray-500">{periodText}</span>
                         </div>
                         
-                        {/* 基本指標 */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                                 <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.TrendingUp className="w-3 h-3"/> 指定期間の売上</div>
@@ -671,7 +671,6 @@
                             </div>
                         </div>
 
-                        {/* 指定期間の人気商品 (復元・すべて見る追加) */}
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                             <h3 className="font-bold text-gray-700 text-sm mb-4 flex items-center gap-2"><Icons.ShoppingBag className="w-4 h-4 text-blue-500"/> 指定期間の人気商品</h3>
                             <div className="space-y-4">
@@ -705,7 +704,6 @@
                             </div>
                         </div>
 
-                        {/* 優良顧客ランキング (VIP・すべて見る追加) */}
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-yellow-200">
                             <h3 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2"><Icons.Award className="w-4 h-4 text-yellow-500"/> 優良顧客ランキング</h3>
                             <p className="text-[10px] text-gray-500 mb-3">タップすると購入カルテを確認できます。</p>
@@ -737,14 +735,12 @@
                             </div>
                         </div>
 
-                        {/* ロス率（歩留まり）の可視化 */}
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                             <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2"><Icons.AlertTriangle className="w-4 h-4 text-orange-500"/> 商品別 ロス率</h3>
                             <p className="text-[10px] text-gray-500 mb-3">指定期間内の「収穫量」に対する「破棄量」の割合です。</p>
                             <div className="space-y-3">
                                 {anData.stockStats && anData.stockStats.length > 0 ? (
                                     anData.stockStats.map((stat, idx) => {
-                                        // ロス率によって色を変える
                                         const barColor = stat.lossRate > 30 ? 'bg-red-500' : stat.lossRate > 10 ? 'bg-orange-400' : 'bg-green-500';
                                         return (
                                             <div key={idx}>
@@ -770,7 +766,6 @@
                 );
             };
 
-            // 顧客別購入カルテモーダル (NEW)
             const renderCustomerModal = () => {
                 if (!showCustomerModal) return null;
                 const c = showCustomerModal;
@@ -810,7 +805,6 @@
                 )
             }
 
-            // 人気商品 全件表示モーダル (NEW)
             const renderAllProductsModal = () => {
                 if (!showAllProductsModal) return null;
                 const products = analytics?.topProducts || [];
@@ -843,7 +837,6 @@
                 )
             }
 
-            // 顧客ランキング 全件表示・検索モーダル (NEW)
             const renderAllCustomersModal = () => {
                 if (!showAllCustomersModal) return null;
                 const allCustomers = analytics?.topCustomers || [];
@@ -864,7 +857,6 @@
                                     <p className="text-center text-sm text-gray-500 py-4">該当するお客様が見つかりません</p>
                                 ) : (
                                     filtered.map((customer, idx) => {
-                                        // 検索時は実際の順位を探す
                                         const rank = allCustomers.findIndex(c => c.userId === customer.userId) + 1;
                                         return (
                                             <div key={customer.userId} onClick={() => {setShowAllCustomersModal(false); setShowCustomerModal(customer);}} 
@@ -886,7 +878,6 @@
                     </div>
                 )
             }
-
 
             return (
                 <div className="app-container">
@@ -923,7 +914,6 @@
                         </button>
                     </div>
 
-                    {/* オーバーレイ群 */}
                     {renderPrintView()}
                     {renderCustomerModal()}
                     {renderAllProductsModal()}
