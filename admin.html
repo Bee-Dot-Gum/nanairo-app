@@ -40,7 +40,9 @@
         .spinner-dark { border-color: rgba(0,0,0,0.1); border-left-color: #16a34a; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
+        .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 
         @media print {
@@ -80,7 +82,9 @@
             FileText: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
             X: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
             Award: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>,
-            XCircle: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            XCircle: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>,
+            AlertCircle: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+            History: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
         };
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
@@ -90,16 +94,22 @@
             const [products, setProducts] = useState([]);
             const [orders, setOrders] = useState([]);
             const [analytics, setAnalytics] = useState(null);
+            const [stockLogs, setStockLogs] = useState([]); // ★追加: 調整履歴
             
             const [isLoadingData, setIsLoadingData] = useState(true);
             const [isFetchingData, setIsFetchingData] = useState(false);
 
+            // 在庫管理用のState
             const [selectedProductId, setSelectedProductId] = useState('');
-            const [type, setType] = useState('add'); 
+            const [type, setType] = useState('add'); // 'add', 'remove', 'sale'
             const [amount, setAmount] = useState(1);
             const [stockMemo, setStockMemo] = useState(''); 
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [message, setMessage] = useState('');
+            
+            // 取消用のState
+            const [cancelTargetLog, setCancelTargetLog] = useState(null);
+            const [isCancelling, setIsCancelling] = useState(false);
 
             const todayMonth = new Date().toISOString().slice(0, 7);
             const [viewStartMonth, setViewStartMonth] = useState(todayMonth);
@@ -129,6 +139,7 @@
                     if (data.products) setProducts(data.products);
                     if (data.orders) setOrders(data.orders);
                     if (data.analytics) setAnalytics(data.analytics);
+                    if (data.stockLogs) setStockLogs(data.stockLogs); // 履歴をセット
                 } catch (error) {
                     console.error("通信エラー:", error);
                     alert("通信エラーが発生しました。");
@@ -145,6 +156,7 @@
 
             const handleRefresh = () => fetchData(viewStartMonth, viewEndMonth);
 
+            // ★修正: 店頭販売('sale')への対応
             const handleActionClick = (productId, actionType) => {
                 setSelectedProductId(productId);
                 setType(actionType);
@@ -163,13 +175,16 @@
                         body: JSON.stringify({
                             action: "stockUpdate",
                             productId: selectedProductId,
-                            type: type,
+                            type: type, // 'add' | 'remove' | 'sale'
                             amount: amount,
                             memo: stockMemo 
                         })
                     });
-                    setMessage(`${amount}件の${type === 'add' ? '追加' : '破棄'}を記録しました！`);
-                    setTimeout(() => setMessage(''), 3000);
+                    
+                    const actionName = type === 'add' ? '収穫(追加)' : type === 'sale' ? '店頭販売' : 'ロス(破棄)';
+                    setMessage(`${amount}件の「${actionName}」を記録しました！`);
+                    setTimeout(() => setMessage(''), 4000);
+                    
                     fetchData(viewStartMonth, viewEndMonth);
                     setAmount(1); setStockMemo(''); 
                 } catch(error) {
@@ -179,8 +194,37 @@
                 }
             };
 
+            // ★追加: 在庫調整の取消処理
+            const handleCancelStockLog = async () => {
+                if (!cancelTargetLog || isCancelling) return;
+                setIsCancelling(true);
+                try {
+                    const res = await fetch(GAS_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        body: JSON.stringify({
+                            action: "cancelStockLog",
+                            rowIndex: cancelTargetLog.rowIndex
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'error') {
+                        alert("取消エラー: " + data.message);
+                    } else {
+                        setMessage(`記録を取り消し、在庫を元に戻しました。`);
+                        setTimeout(() => setMessage(''), 4000);
+                        fetchData(viewStartMonth, viewEndMonth);
+                    }
+                } catch(error) {
+                    alert("通信エラーが発生しました。");
+                } finally {
+                    setIsCancelling(false);
+                    setCancelTargetLog(null);
+                }
+            };
+
             const toggleOrderStatus = async (orderId, currentStatus) => {
-                if(currentStatus === 'キャンセル') return; // キャンセルからは戻せない
+                if(currentStatus === 'キャンセル') return; 
                 
                 const nextStatus = currentStatus === '未対応' ? '準備完了' : currentStatus === '準備完了' ? '受渡済' : '未対応';
                 setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: nextStatus } : o));
@@ -204,7 +248,6 @@
             };
 
             const openBulkPrintPreview = (type) => {
-                // キャンセルは除外して印刷
                 const printableOrders = orders.filter(o => o.status !== 'キャンセル');
                 if(printableOrders.length === 0) return alert("指定期間に印刷可能な注文がありません。");
                 setPrintOrders(printableOrders);
@@ -364,7 +407,6 @@
             // ==========================================
             const renderOrdersTab = () => {
                 const isCurrentMonth = viewStartMonth === todayMonth;
-                // ★修正: キャンセルは pastOrders に回す
                 const activeOrders = orders.filter(o => o.status === '未対応' || o.status === '準備完了');
                 const pastOrders = orders.filter(o => o.status === '受渡済' || o.status === 'キャンセル');
 
@@ -530,19 +572,19 @@
             };
 
             // ==========================================
-            // UIコンポーネント: 2. 在庫調整タブ
+            // UIコンポーネント: 2. 在庫調整タブ (店頭販売・取消機能追加)
             // ==========================================
             const renderInventoryTab = () => (
                 <div className="animate-slide-up space-y-6">
                     <div className="flex justify-between items-end border-l-4 border-nanairo-dark pl-2">
-                        <h1 className="text-xl font-bold text-gray-800">在庫管理・調整</h1>
+                        <h1 className="text-xl font-bold text-gray-800">在庫・店頭販売</h1>
                         <button onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100">
                             <Icons.RefreshCw className={`w-5 h-5 ${isFetchingData ? 'animate-spin' : ''}`} />
                         </button>
                     </div>
 
                     {message && (
-                        <div className="bg-nanairo-light border border-nanairo text-nanairo-dark px-4 py-3 rounded-xl flex items-center gap-2">
+                        <div className="bg-nanairo-light border border-nanairo text-nanairo-dark px-4 py-3 rounded-xl flex items-center gap-2 animate-fade-in">
                             <Icons.Check className="w-5 h-5" />
                             <span className="font-bold text-sm">{message}</span>
                         </div>
@@ -570,9 +612,10 @@
                                             </span>
                                         </td>
                                         <td className="px-3 py-3 text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <button onClick={() => handleActionClick(p.id, 'add')} className="bg-nanairo-dark text-white px-2 py-1.5 rounded text-xs font-bold active:bg-green-700">追加</button>
-                                                <button onClick={() => handleActionClick(p.id, 'remove')} className="bg-red-500 text-white px-2 py-1.5 rounded text-xs font-bold active:bg-red-600">破棄</button>
+                                            <div className="flex justify-end gap-1 flex-wrap w-full">
+                                                <button onClick={() => handleActionClick(p.id, 'add')} className="bg-nanairo-dark text-white px-2 py-1.5 rounded text-[10px] font-bold active:bg-green-700">収穫</button>
+                                                <button onClick={() => handleActionClick(p.id, 'sale')} className="bg-blue-500 text-white px-2 py-1.5 rounded text-[10px] font-bold active:bg-blue-600">販売</button>
+                                                <button onClick={() => handleActionClick(p.id, 'remove')} className="bg-red-500 text-white px-2 py-1.5 rounded text-[10px] font-bold active:bg-red-600">ロス</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -582,7 +625,7 @@
                     </section>
 
                     <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-                        <h2 className="font-bold text-gray-800 mb-4 text-base">新しい調整を登録</h2>
+                        <h2 className="font-bold text-gray-800 mb-4 text-base">手動入力フォーム</h2>
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 mb-1">商品を選択</label>
@@ -591,33 +634,116 @@
                                     {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                 </select>
                             </div>
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <label className="block text-xs font-bold text-gray-500 mb-1">区分</label>
-                                    <div className="flex items-center bg-gray-100 border border-gray-200 rounded-xl h-11 p-1 relative cursor-pointer" onClick={() => setType(type === 'add' ? 'remove' : 'add')}>
-                                        <div className={`w-1/2 h-full rounded-lg flex items-center justify-center text-xs font-bold z-10 transition-colors ${type === 'add' ? 'text-white' : 'text-gray-500'}`}>収穫 (追加)</div>
-                                        <div className={`w-1/2 h-full rounded-lg flex items-center justify-center text-xs font-bold z-10 transition-colors ${type === 'remove' ? 'text-white' : 'text-gray-500'}`}>ロス (破棄)</div>
-                                        <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg shadow-sm transition-transform duration-300 ${type === 'add' ? 'bg-nanairo-dark left-1 translate-x-0' : 'bg-red-500 left-1 translate-x-full'}`}></div>
-                                    </div>
-                                </div>
-                                <div className="w-24">
-                                    <label className="block text-xs font-bold text-gray-500 mb-1">数量</label>
-                                    <div className="flex items-center border border-gray-300 rounded-xl bg-gray-50 h-11 overflow-hidden">
-                                        <button onClick={() => setAmount(Math.max(1, amount - 1))} className="w-8 h-full flex justify-center items-center text-gray-600 bg-gray-100"><Icons.Minus className="w-3 h-3" /></button>
-                                        <div className="flex-1 text-center font-bold text-sm">{amount}</div>
-                                        <button onClick={() => setAmount(amount + 1)} className="w-8 h-full flex justify-center items-center text-gray-600 bg-gray-100"><Icons.Plus className="w-3 h-3" /></button>
+                            
+                            {/* ★修正: 区分を3つ（収穫、店頭販売、ロス）に変更 */}
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">区分</label>
+                                <div className="flex items-center bg-gray-100 border border-gray-200 rounded-xl h-11 p-1 relative cursor-pointer select-none">
+                                    <div onClick={() => setType('add')} className={`w-1/3 h-full rounded-lg flex items-center justify-center text-xs font-bold z-10 transition-colors ${type === 'add' ? 'text-white' : 'text-gray-500'}`}>収穫 (追加)</div>
+                                    <div onClick={() => setType('sale')} className={`w-1/3 h-full rounded-lg flex items-center justify-center text-xs font-bold z-10 transition-colors ${type === 'sale' ? 'text-white' : 'text-gray-500'}`}>店頭販売</div>
+                                    <div onClick={() => setType('remove')} className={`w-1/3 h-full rounded-lg flex items-center justify-center text-xs font-bold z-10 transition-colors ${type === 'remove' ? 'text-white' : 'text-gray-500'}`}>ロス (破棄)</div>
+                                    
+                                    <div className={`absolute top-1 bottom-1 w-[calc(33.333%-4px)] rounded-lg shadow-sm transition-transform duration-300 
+                                        ${type === 'add' ? 'bg-nanairo-dark left-1 translate-x-0' : 
+                                          type === 'sale' ? 'bg-blue-500 left-1 translate-x-full' : 
+                                          'bg-red-500 left-1 translate-x-[200%]'}`}>
                                     </div>
                                 </div>
                             </div>
+
+                            <div className="w-24">
+                                <label className="block text-xs font-bold text-gray-500 mb-1">数量</label>
+                                <div className="flex items-center border border-gray-300 rounded-xl bg-gray-50 h-11 overflow-hidden">
+                                    <button onClick={() => setAmount(Math.max(1, amount - 1))} className="w-8 h-full flex justify-center items-center text-gray-600 bg-gray-100"><Icons.Minus className="w-3 h-3" /></button>
+                                    <div className="flex-1 text-center font-bold text-sm">{amount}</div>
+                                    <button onClick={() => setAmount(amount + 1)} className="w-8 h-full flex justify-center items-center text-gray-600 bg-gray-100"><Icons.Plus className="w-3 h-3" /></button>
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 mb-1">メモ (オプション)</label>
-                                <textarea value={stockMemo} onChange={e => setStockMemo(e.target.value)} placeholder="例：鮮度落ち" className="w-full border border-gray-300 rounded-lg p-3 text-sm bg-gray-50 h-16 resize-none focus:ring-2 focus:ring-nanairo-dark outline-none"></textarea>
+                                <textarea value={stockMemo} onChange={e => setStockMemo(e.target.value)} placeholder="例：鮮度落ち、店頭での現金販売など" className="w-full border border-gray-300 rounded-lg p-3 text-sm bg-gray-50 h-16 resize-none focus:ring-2 focus:ring-nanairo-dark outline-none"></textarea>
                             </div>
-                            <button onClick={handleSubmitStock} disabled={isSubmitting || !selectedProductId} className={`w-full py-3.5 rounded-xl font-bold shadow-md transition-colors flex justify-center items-center gap-2 mt-2 ${(!selectedProductId || isSubmitting) ? 'bg-gray-300 text-gray-500' : type === 'add' ? 'bg-nanairo-dark text-white' : 'bg-red-500 text-white'}`}>
+                            
+                            <button onClick={handleSubmitStock} disabled={isSubmitting || !selectedProductId} className={`w-full py-3.5 rounded-xl font-bold shadow-md transition-colors flex justify-center items-center gap-2 mt-2 
+                                ${(!selectedProductId || isSubmitting) ? 'bg-gray-300 text-gray-500' : 
+                                  type === 'add' ? 'bg-nanairo-dark text-white' : 
+                                  type === 'sale' ? 'bg-blue-600 text-white' : 
+                                  'bg-red-500 text-white'}`}>
                                 {isSubmitting ? <><div className="spinner"></div> 登録中...</> : 'スプレッドシートに記録'}
                             </button>
                         </div>
                     </section>
+
+                    {/* ★追加: 調整履歴と取消機能 */}
+                    <section className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+                        <h2 className="font-bold text-gray-800 mb-3 text-sm flex items-center gap-2">
+                            <Icons.History className="w-4 h-4 text-gray-500" /> 最近の調整履歴
+                        </h2>
+                        <div className="space-y-2">
+                            {stockLogs.length === 0 ? (
+                                <p className="text-xs text-gray-500 text-center py-4">履歴はありません</p>
+                            ) : (
+                                stockLogs.map((log) => {
+                                    const isCancelled = log.status === '取消';
+                                    const typeColor = log.type === '収穫' ? 'text-green-600 bg-green-50' : 
+                                                      log.type === '店頭販売' ? 'text-blue-600 bg-blue-50' : 
+                                                      'text-red-600 bg-red-50';
+                                    return (
+                                        <div key={log.rowIndex} className={`border rounded-lg p-2.5 flex items-center justify-between shadow-sm transition-opacity ${isCancelled ? 'border-gray-200 opacity-50 bg-gray-50' : 'border-gray-200 bg-white'}`}>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isCancelled ? 'bg-gray-200 text-gray-500' : typeColor}`}>{log.type}</span>
+                                                    <span className="text-xs font-bold text-gray-800">{log.name}</span>
+                                                    <span className="text-xs font-bold text-gray-600">{log.amount}P</span>
+                                                </div>
+                                                <div className="text-[10px] text-gray-500">{log.date} {log.memo && `- ${log.memo}`}</div>
+                                            </div>
+                                            {!isCancelled && (
+                                                <button onClick={() => setCancelTargetLog(log)} className="text-[10px] font-bold text-red-500 bg-white border border-red-200 px-2 py-1.5 rounded shadow-sm active:bg-red-50">
+                                                    取消
+                                                </button>
+                                            )}
+                                            {isCancelled && (
+                                                <span className="text-[10px] font-bold text-gray-500">取消済</span>
+                                            )}
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                    </section>
+
+                    {/* ★追加: 取消確認モーダル */}
+                    {cancelTargetLog && (
+                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
+                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
+                                <div className="flex flex-col items-center text-center mb-4">
+                                    <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3">
+                                        <Icons.AlertTriangle className="w-7 h-7" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-1">この記録を取り消しますか？</h3>
+                                    <p className="text-xs text-gray-500">
+                                        在庫数は自動的に元に戻ります。<br/>
+                                        店頭販売の場合は売上からも除外されます。
+                                    </p>
+                                </div>
+                                
+                                <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 font-bold border border-gray-200 mb-5 text-center">
+                                    {cancelTargetLog.type}：{cancelTargetLog.name} {cancelTargetLog.amount}P
+                                </div>
+                                
+                                <div className="flex gap-2">
+                                    <button onClick={() => setCancelTargetLog(null)} disabled={isCancelling} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">
+                                        閉じる
+                                    </button>
+                                    <button onClick={handleCancelStockLog} disabled={isCancelling} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl active:bg-red-600 flex justify-center items-center gap-2">
+                                        {isCancelling ? <div className="spinner border-l-white w-4 h-4"></div> : '取り消す'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
 
@@ -652,13 +778,15 @@
                             <span className="text-xs font-bold text-gray-500">{periodText}</span>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-3">
+                        {/* ★修正: 店頭販売合算の注記 */}
+                        <div className="grid grid-cols-2 gap-3 relative">
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.TrendingUp className="w-3 h-3"/> 指定期間の売上</div>
+                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.TrendingUp className="w-3 h-3"/> 指定期間の総売上</div>
                                 <div className="text-2xl font-bold text-gray-900 tracking-tight">¥{anData.monthlySales.toLocaleString()}</div>
+                                <div className="text-[9px] text-gray-400 mt-1">※店頭販売分を含む</div>
                             </div>
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.ClipboardList className="w-3 h-3"/> 指定期間の注文数</div>
+                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.ClipboardList className="w-3 h-3"/> 注文・販売件数</div>
                                 <div className="text-2xl font-bold text-gray-900 tracking-tight">{anData.orderCount} <span className="text-sm font-normal text-gray-500">件</span></div>
                             </div>
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
@@ -672,7 +800,7 @@
                         </div>
 
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                            <h3 className="font-bold text-gray-700 text-sm mb-4 flex items-center gap-2"><Icons.ShoppingBag className="w-4 h-4 text-blue-500"/> 指定期間の人気商品</h3>
+                            <h3 className="font-bold text-gray-700 text-sm mb-4 flex items-center gap-2"><Icons.ShoppingBag className="w-4 h-4 text-blue-500"/> 人気商品 (店頭販売含む)</h3>
                             <div className="space-y-4">
                                 {anData.topProducts && anData.topProducts.length === 0 ? (
                                     <p className="text-sm text-gray-500 text-center py-4">データがありません</p>
@@ -705,8 +833,8 @@
                         </div>
 
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-yellow-200">
-                            <h3 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2"><Icons.Award className="w-4 h-4 text-yellow-500"/> 優良顧客ランキング</h3>
-                            <p className="text-[10px] text-gray-500 mb-3">タップすると購入カルテを確認できます。</p>
+                            <h3 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2"><Icons.Award className="w-4 h-4 text-yellow-500"/> LINE優良顧客ランキング</h3>
+                            <p className="text-[10px] text-gray-500 mb-3">※店頭での直接販売分はここには含まれません。</p>
                             <div className="space-y-2">
                                 {anData.topCustomers && anData.topCustomers.length > 0 ? (
                                     <>
@@ -906,7 +1034,7 @@
                         </button>
                         <button onClick={() => setActiveTab('inventory')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'inventory' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
                             <Icons.Box className="w-6 h-6" />
-                            <span className="text-[10px] font-bold">在庫調整</span>
+                            <span className="text-[10px] font-bold">在庫・店頭販売</span>
                         </button>
                         <button onClick={() => setActiveTab('analytics')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'analytics' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
                             <Icons.TrendingUp className="w-6 h-6" />
