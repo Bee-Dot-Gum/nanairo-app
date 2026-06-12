@@ -257,9 +257,7 @@
                 }
             };
 
-            // ★新規追加: 専務・カフェの確認状態を切り替える関数
             const toggleCheck = async (orderId, role, isChecked) => {
-                // UIを先に更新（Optimistic UI）
                 setOrders(prev => prev.map(o => o.id === orderId ? { ...o, [role === 'senmu' ? 'senmuChecked' : 'cafeChecked']: isChecked } : o));
                 try {
                     await fetch(GAS_URL, {
@@ -377,8 +375,9 @@
                                 </div>
                             </div>
                             
-                            <div className="p-4 sm:p-8 mt-4">
-                                <div className="page-break bg-white p-8 sm:p-12 shadow-sm rounded-lg border border-gray-200 max-w-[800px] mx-auto text-gray-800 relative min-h-[290mm] pt-12">
+                            {/* ★スマホでも崩れないように修正: overflow-x-auto を追加し、紙の幅を800pxに固定 */}
+                            <div className="p-4 sm:p-8 mt-4 overflow-x-auto flex-1">
+                                <div className="page-break bg-white p-8 sm:p-12 shadow-sm rounded-lg border border-gray-200 w-[800px] min-w-[800px] max-w-[800px] mx-auto text-gray-800 relative min-h-[290mm] pt-12 print:w-full print:min-w-0 print:max-w-none">
                                     <div className="text-sm text-gray-700 font-bold mb-2">請求明細書</div>
                                     
                                     <div className="flex justify-between items-start mb-6">
@@ -480,11 +479,13 @@
                                 <Icons.Printer className="w-5 h-5"/> 印刷を実行
                             </button>
                         </div>
-                        <div className="p-4 sm:p-8 mt-4">
+                        
+                        {/* ★スマホでも崩れないように修正: overflow-x-auto を追加し、紙の幅を800pxに固定 */}
+                        <div className="p-4 sm:p-8 mt-4 overflow-x-auto flex-1">
                             {printOrders.map((order, index) => {
                                 const targetName = printOrders.length === 1 ? printName : order.userName;
                                 return (
-                                    <div key={order.id} className="page-break bg-white p-8 sm:p-12 shadow-sm rounded-lg border border-gray-200 mb-8 max-w-[800px] mx-auto text-gray-800 relative min-h-[250mm] pt-12">
+                                    <div key={order.id} className="page-break bg-white p-8 sm:p-12 shadow-sm rounded-lg border border-gray-200 mb-8 w-[800px] min-w-[800px] max-w-[800px] mx-auto text-gray-800 relative min-h-[250mm] pt-12 print:w-full print:min-w-0 print:max-w-none">
                                         <div className="text-right text-sm text-gray-500 mb-6">
                                             発行日: {todayText}<br/>
                                             <span className="font-bold">登録番号: T390001016462</span>
@@ -649,7 +650,6 @@
                                                     </div>
                                                 )}
                                                 
-                                                {/* ★新規追加: 専務とカフェの確認ボタン */}
                                                 <div className="flex gap-2 mt-3 mb-1">
                                                     <button onClick={() => toggleCheck(order.id, 'senmu', !order.senmuChecked)} className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border transition-colors ${order.senmuChecked ? 'bg-blue-50 text-blue-600 border-blue-200 shadow-inner' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                                                         <div className={`w-4 h-4 rounded-full flex items-center justify-center border ${order.senmuChecked ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-white'}`}>
@@ -715,7 +715,6 @@
                                                                 {order.itemsList && order.itemsList.map(i => `${i.name}×${i.qty}`).join(', ')}
                                                             </div>
                                                             
-                                                            {/* ★新規追加: 過去履歴での確認状態の表示バッジ */}
                                                             <div className="flex gap-1">
                                                                 {order.senmuChecked && <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded font-bold">専務確認済</span>}
                                                                 {order.cafeChecked && <span className="text-[9px] bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded font-bold">カフェ確認済</span>}
