@@ -925,62 +925,6 @@
                             )}
                         </div>
                     </section>
-
-                    {/* ★追加: 一括ロスの確認モーダル */}
-                    {showBulkLossModal && (
-                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
-                                <div className="flex flex-col items-center text-center mb-4">
-                                    <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3">
-                                        <Icons.AlertTriangle className="w-7 h-7" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-gray-900 mb-1">在庫を一括ロスしますか？</h3>
-                                    <p className="text-xs text-gray-500">
-                                        現在在庫が残っているすべての商品の在庫を「0」にし、一括でロス（破棄）として記録します。<br/>
-                                        <span className="text-red-500 mt-1 inline-block">この操作は一度に多数のデータを更新します。</span>
-                                    </p>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => setShowBulkLossModal(false)} disabled={isBulkSubmitting} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">
-                                        キャンセル
-                                    </button>
-                                    <button onClick={handleBulkLoss} disabled={isBulkSubmitting} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl active:bg-red-600 flex justify-center items-center gap-2">
-                                        {isBulkSubmitting ? <div className="spinner border-l-white w-4 h-4"></div> : '一括ロス実行'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {cancelTargetLog && (
-                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
-                                <div className="flex flex-col items-center text-center mb-4">
-                                    <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3">
-                                        <Icons.AlertTriangle className="w-7 h-7" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-gray-900 mb-1">この記録を取り消しますか？</h3>
-                                    <p className="text-xs text-gray-500">
-                                        在庫数は自動的に元に戻ります。<br/>
-                                        店頭販売の場合は売上からも除外されます。
-                                    </p>
-                                </div>
-                                
-                                <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 font-bold border border-gray-200 mb-5 text-center">
-                                    {cancelTargetLog.type}：{cancelTargetLog.name} {cancelTargetLog.amount}P
-                                </div>
-                                
-                                <div className="flex gap-2">
-                                    <button onClick={() => setCancelTargetLog(null)} disabled={isCancelling} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">
-                                        閉じる
-                                    </button>
-                                    <button onClick={handleCancelStockLog} disabled={isCancelling} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl active:bg-red-600 flex justify-center items-center gap-2">
-                                        {isCancelling ? <div className="spinner border-l-white w-4 h-4"></div> : '取り消す'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             );
 
@@ -1287,6 +1231,63 @@
                     {renderCustomerModal()}
                     {renderAllProductsModal()}
                     {renderAllCustomersModal()}
+
+                    {/* ★修正: スクロールしても常に画面中央に出るように、モーダルの位置を一番外側に移動しました */}
+                    {showBulkLossModal && (
+                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in no-print">
+                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
+                                <div className="flex flex-col items-center text-center mb-4">
+                                    <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3">
+                                        <Icons.AlertTriangle className="w-7 h-7" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-1">在庫を一括ロスしますか？</h3>
+                                    <p className="text-xs text-gray-500">
+                                        現在在庫が残っているすべての商品の在庫を「0」にし、一括でロス（破棄）として記録します。<br/>
+                                        <span className="text-red-500 mt-1 inline-block">この操作は一度に多数のデータを更新します。</span>
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setShowBulkLossModal(false)} disabled={isBulkSubmitting} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">
+                                        キャンセル
+                                    </button>
+                                    <button onClick={handleBulkLoss} disabled={isBulkSubmitting} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl active:bg-red-600 flex justify-center items-center gap-2">
+                                        {isBulkSubmitting ? <div className="spinner border-l-white w-4 h-4"></div> : '一括ロス実行'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* こちらの取消モーダルも同様に外側に移動しています */}
+                    {cancelTargetLog && (
+                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in no-print">
+                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
+                                <div className="flex flex-col items-center text-center mb-4">
+                                    <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3">
+                                        <Icons.AlertTriangle className="w-7 h-7" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-1">この記録を取り消しますか？</h3>
+                                    <p className="text-xs text-gray-500">
+                                        在庫数は自動的に元に戻ります。<br/>
+                                        店頭販売の場合は売上からも除外されます。
+                                    </p>
+                                </div>
+                                
+                                <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 font-bold border border-gray-200 mb-5 text-center">
+                                    {cancelTargetLog.type}：{cancelTargetLog.name} {cancelTargetLog.amount}P
+                                </div>
+                                
+                                <div className="flex gap-2">
+                                    <button onClick={() => setCancelTargetLog(null)} disabled={isCancelling} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">
+                                        閉じる
+                                    </button>
+                                    <button onClick={handleCancelStockLog} disabled={isCancelling} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl active:bg-red-600 flex justify-center items-center gap-2">
+                                        {isCancelling ? <div className="spinner border-l-white w-4 h-4"></div> : '取り消す'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
