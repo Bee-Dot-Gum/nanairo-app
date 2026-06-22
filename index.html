@@ -8,7 +8,6 @@
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <!-- ★ここを修正しました（@7 を追加して安定版に固定） -->
     <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -67,6 +66,7 @@
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
 
+        // ★将来再開できるように画像は残しておく
         const IMAGE_MAP = {
             "アマランサス": "https://i.imgur.com/LCmD4Pd.jpeg",
             "デトロイト": "https://i.imgur.com/YOWKgpT.jpeg",
@@ -144,11 +144,13 @@
                     .then(res => res.json())
                     .then(data => {
                         if (Array.isArray(data)) {
-                            const formattedData = data.map(p => ({
-                                ...p,
-                                unit: 'P',
-                                image: IMAGE_MAP[p.name] || `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent(p.name)}`
-                            }));
+                            const formattedData = data
+                                .filter(p => p.name !== "なないろ菜") // ★修正: なないろ菜のオンライン販売を停止中のため除外
+                                .map(p => ({
+                                    ...p,
+                                    unit: 'P',
+                                    image: IMAGE_MAP[p.name] || `https://placehold.co/400x300/e6f4ea/16a34a?text=${encodeURIComponent(p.name)}`
+                                }));
                             setProductsData(formattedData);
                         }
                     })
@@ -196,6 +198,7 @@
                 if (Array.isArray(itemsList)) {
                     itemsList.forEach(item => {
                         const product = productsData.find(p => p.name === item.name);
+                        // もし過去履歴になないろ菜があった場合、現在販売してないのでカートには入らない仕様になります
                         if (product) newCart[product.id] = item.qty;
                     });
                 }
@@ -353,7 +356,6 @@
                             </>
                         ) : (
                             <div className="pb-20">
-                                {/* ★変更: タイトルの変更と注意書きの追加 */}
                                 <div className="flex justify-between items-center mb-2">
                                     <h2 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                                         <Icons.History className="w-5 h-5 text-nanairo-dark" />履歴・キャンセル
@@ -374,7 +376,7 @@
                                     ) : pastOrders.map(order => {
                                         const isCancelled = order.status === 'キャンセル';
                                         const isCompleted = order.status === '受渡済';
-                                        const isCancellable = order.status === '未対応'; // キャンセル可能な条件
+                                        const isCancellable = order.status === '未対応';
                                         
                                         return (
                                             <div key={order.id} className={`border rounded-xl p-4 shadow-sm relative overflow-hidden ${isCancelled ? 'bg-gray-100 border-gray-200 opacity-70' : 'bg-white border-gray-200'}`}>
@@ -421,7 +423,6 @@
                         )}
                     </main>
 
-                    {/* カート下部バー */}
                     {cartSummary.totalItems > 0 && !showConfirm && !showComplete && (
                         <div className="fixed bottom-14 left-0 right-0 mx-auto w-full max-w-[430px] px-4 py-3 z-30 animate-slide-up pb-safe box-border">
                             <button onClick={() => setShowConfirm(true)} className="w-full bg-[#759fbf] text-white rounded-xl py-3 px-4 flex justify-between items-center font-bold shadow-lg active:bg-[#5c809a] transition-colors">
@@ -431,7 +432,6 @@
                         </div>
                     )}
 
-                    {/* ★変更: タブナビゲーションのラベルを変更 */}
                     <div className="fixed bottom-0 left-0 right-0 mx-auto w-full max-w-[430px] bg-white border-t border-gray-200 flex h-14 z-20 pb-safe box-border">
                         <button onClick={() => setActiveTab('home')} className={`flex-1 flex flex-col items-center justify-center gap-0.5 ${activeTab === 'home' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
                             <Icons.Store className="w-5 h-5" />
@@ -443,7 +443,6 @@
                         </button>
                     </div>
 
-                    {/* 注文確認モーダル */}
                     {showConfirm && (
                         <div className="fixed inset-0 bg-black/50 z-40 flex flex-col justify-end items-center">
                             <div className="bg-white rounded-t-2xl w-full max-w-[430px] max-h-[90vh] flex flex-col animate-slide-up">
@@ -509,7 +508,6 @@
                         </div>
                     )}
 
-                    {/* キャンセル確認モーダル */}
                     {cancelTarget && (
                         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
                             <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
@@ -540,7 +538,6 @@
                         </div>
                     )}
 
-                    {/* 完了画面 */}
                     {showComplete && (
                         <div className="fixed inset-0 z-50 flex justify-center bg-gray-50">
                             <div className="w-full max-w-[430px] bg-white h-full flex flex-col items-center justify-center p-6 text-center pb-safe">
