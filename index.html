@@ -102,14 +102,20 @@
             const [isCancelling, setIsCancelling] = useState(false);
             
             const [pickupDate, setPickupDate] = useState("");
+            const [minPickupDate, setMinPickupDate] = useState(""); // ★追加: 選択可能な最短日
             const [pickupTime, setPickupTime] = useState("11:00-12:00");
             const [memo, setMemo] = useState("");
             
             const [isSubmitting, setIsSubmitting] = useState(false);
 
             useEffect(() => {
-                const today = new Date().toISOString().split('T')[0];
-                setPickupDate(today);
+                // ★修正: 当日を弾き、最短選択日を「明日」に設定
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const minDateStr = tomorrow.toISOString().split('T')[0];
+                
+                setPickupDate(minDateStr);     // 初期値を明日にセット
+                setMinPickupDate(minDateStr);  // カレンダーの選択ブロック用にセット
 
                 const savedHistory = JSON.parse(localStorage.getItem('nanairo_history') || '[]');
                 setPastOrders(savedHistory);
@@ -473,7 +479,9 @@
                                     <div className="space-y-3">
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 mb-1">ご来店予定日 <span className="text-red-500">*</span></label>
-                                            <input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="block w-full border border-gray-300 rounded-lg p-3 text-base bg-gray-50 focus:ring-2 focus:ring-nanairo-dark outline-none appearance-none box-border" />
+                                            {/* ★修正: min属性で過去と当日をブロックし、案内文を追加 */}
+                                            <input type="date" min={minPickupDate} value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="block w-full border border-gray-300 rounded-lg p-3 text-base bg-gray-50 focus:ring-2 focus:ring-nanairo-dark outline-none appearance-none box-border" />
+                                            <p className="text-[10px] text-nanairo-accent font-bold mt-1.5">※当日のご注文・お受け取りをご希望の場合は、直接お電話にてご相談ください。</p>
                                         </div>
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 mb-1">ご来店時間帯 <span className="text-red-500">*</span></label>
