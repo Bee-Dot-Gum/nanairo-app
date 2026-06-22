@@ -10,7 +10,6 @@
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <!-- ★ここを修正しました（@7 を追加して安定版に固定） -->
     <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -115,6 +114,10 @@
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [message, setMessage] = useState('');
             
+            // ★追加: 一括ロス用State
+            const [showBulkLossModal, setShowBulkLossModal] = useState(false);
+            const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
+
             const [cancelTargetLog, setCancelTargetLog] = useState(null);
             const [isCancelling, setIsCancelling] = useState(false);
 
@@ -148,7 +151,10 @@
                         alert("データの取得に失敗しました。");
                         return;
                     }
-                    if (data.products) setProducts(data.products);
+                    if (data.products) {
+                        // ★修正: なないろ菜を管理画面の一覧からも除外
+                        setProducts(data.products.filter(p => p.name !== "なないろ菜"));
+                    }
                     if (data.orders) setOrders(data.orders);
                     if (data.analytics) setAnalytics(data.analytics);
                     if (data.stockLogs) setStockLogs(data.stockLogs);
@@ -209,6 +215,28 @@
                     alert("エラーが発生しました。");
                 } finally {
                     setIsSubmitting(false);
+                }
+            };
+
+            // ★追加: 一括ロス実行ハンドラー
+            const handleBulkLoss = async () => {
+                setIsBulkSubmitting(true);
+                try {
+                    await fetch(GAS_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        body: JSON.stringify({ action: "bulkLoss" })
+                    });
+                    
+                    setMessage(`現在在庫がある全商品を一括でロス(破棄)にしました！`);
+                    setTimeout(() => setMessage(''), 4000);
+                    
+                    fetchData(viewStartMonth, viewEndMonth);
+                } catch(error) {
+                    alert("エラーが発生しました。");
+                } finally {
+                    setIsBulkSubmitting(false);
+                    setShowBulkLossModal(false);
                 }
             };
 
@@ -376,7 +404,6 @@
                                 </div>
                             </div>
                             
-                            {/* ★スマホでも崩れないように修正: overflow-x-auto を追加し、紙の幅を800pxに固定 */}
                             <div className="p-4 sm:p-8 mt-4 overflow-x-auto flex-1">
                                 <div className="page-break bg-white p-8 sm:p-12 shadow-sm rounded-lg border border-gray-200 w-[800px] min-w-[800px] max-w-[800px] mx-auto text-gray-800 relative min-h-[290mm] pt-12 print:w-full print:min-w-0 print:max-w-none">
                                     <div className="text-sm text-gray-700 font-bold mb-2">請求明細書</div>
@@ -481,7 +508,6 @@
                             </button>
                         </div>
                         
-                        {/* ★スマホでも崩れないように修正: overflow-x-auto を追加し、紙の幅を800pxに固定 */}
                         <div className="p-4 sm:p-8 mt-4 overflow-x-auto flex-1">
                             {printOrders.map((order, index) => {
                                 const targetName = printOrders.length === 1 ? printName : order.userName;
@@ -772,7 +798,7 @@
                         </div>
                     )}
 
-                    <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
@@ -805,6 +831,11 @@
                             </tbody>
                         </table>
                     </section>
+
+                    {/* ★追加: 一括ロスボタン */}
+                    <button onClick={() => setShowBulkLossModal(true)} className="w-full bg-red-50 text-red-600 border border-red-200 rounded-xl py-3 font-bold text-sm mb-6 active:bg-red-100 flex justify-center items-center gap-2 shadow-sm">
+                        <Icons.AlertTriangle className="w-4 h-4"/> 現在の全在庫を一括でロス (破棄) する
+                    </button>
 
                     <section id="manual-input-form" className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
                         <h2 className="font-bold text-gray-800 mb-4 text-base">手動入力フォーム</h2>
@@ -846,12 +877,13 @@
                                 <textarea value={stockMemo} onChange={e => setStockMemo(e.target.value)} placeholder="例：鮮度落ち、店頭での現金販売など" className="w-full border border-gray-300 rounded-lg p-3 text-sm bg-gray-50 h-16 resize-none focus:ring-2 focus:ring-nanairo-dark outline-none"></textarea>
                             </div>
                             
+                            {/* ★修正: ボタンの文言を「入力」に変更 */}
                             <button onClick={handleSubmitStock} disabled={isSubmitting || !selectedProductId} className={`w-full py-3.5 rounded-xl font-bold shadow-md transition-colors flex justify-center items-center gap-2 mt-2 
                                 ${(!selectedProductId || isSubmitting) ? 'bg-gray-300 text-gray-500' : 
                                   type === 'add' ? 'bg-nanairo-dark text-white' : 
                                   type === 'sale' ? 'bg-blue-600 text-white' : 
                                   'bg-red-500 text-white'}`}>
-                                {isSubmitting ? <><div className="spinner"></div> 登録中...</> : 'スプレッドシートに記録'}
+                                {isSubmitting ? <><div className="spinner"></div> 登録中...</> : '入力'}
                             </button>
                         </div>
                     </section>
@@ -893,6 +925,32 @@
                             )}
                         </div>
                     </section>
+
+                    {/* ★追加: 一括ロスの確認モーダル */}
+                    {showBulkLossModal && (
+                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
+                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
+                                <div className="flex flex-col items-center text-center mb-4">
+                                    <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3">
+                                        <Icons.AlertTriangle className="w-7 h-7" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-1">在庫を一括ロスしますか？</h3>
+                                    <p className="text-xs text-gray-500">
+                                        現在在庫が残っているすべての商品の在庫を「0」にし、一括でロス（破棄）として記録します。<br/>
+                                        <span className="text-red-500 mt-1 inline-block">この操作は一度に多数のデータを更新します。</span>
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setShowBulkLossModal(false)} disabled={isBulkSubmitting} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">
+                                        キャンセル
+                                    </button>
+                                    <button onClick={handleBulkLoss} disabled={isBulkSubmitting} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl active:bg-red-600 flex justify-center items-center gap-2">
+                                        {isBulkSubmitting ? <div className="spinner border-l-white w-4 h-4"></div> : '一括ロス実行'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {cancelTargetLog && (
                         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
