@@ -154,8 +154,8 @@
 
             // ★追加：印刷ハブ用のState
             const [isAutoPrintEnabled, setIsAutoPrintEnabled] = useState(false);
-            const [printedOrderIds, setPrintedOrderIds] = useState(() => {
-                try { return JSON.parse(localStorage.getItem('nanairo_printed_orders')) || []; }
+            const [printLogs, setPrintLogs] = useState(() => {
+                try { return JSON.parse(localStorage.getItem('nanairo_print_log')) || []; }
                 catch { return []; }
             });
             const [autoPrintQueue, setAutoPrintQueue] = useState([]);
@@ -212,7 +212,7 @@
                 if (isLoadingData || isFetchingData) return;
 
                 // 未対応 かつ 印刷履歴にない注文を抽出
-                const unprinted = orders.filter(o => o.status === '未対応' && !printedOrderIds.includes(o.id));
+                const unprinted = orders.filter(o => o.status === '未対応' && !printLogs.some(log => log.id === o.id));
                 
                 // 印刷キューが空の場合にのみ処理をキックする
                 if (unprinted.length > 0 && autoPrintQueue.length === 0 && printOrders.length === 0) {
@@ -234,10 +234,18 @@
                     setTimeout(() => {
                         window.print();
                         
-                        // 印刷済みに登録
-                        const newPrintedIds = [...printedOrderIds, ...unprinted.map(o => o.id)];
-                        setPrintedOrderIds(newPrintedIds);
-                        localStorage.setItem('nanairo_printed_orders', JSON.stringify(newPrintedIds));
+                        // 印刷済みに登録 (ログとして日時と名前を保存)
+                        const now = new Date();
+                        const timeStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                        const newLogs = unprinted.map(o => ({
+                            id: o.id,
+                            userName: o.userName,
+                            printedAt: timeStr
+                        }));
+                        // 最新のものを上にし、最大100件まで保存
+                        const updatedLogs = [...newLogs, ...printLogs].slice(0, 100);
+                        setPrintLogs(updatedLogs);
+                        localStorage.setItem('nanairo_print_log', JSON.stringify(updatedLogs));
                         
                         // キューと画面をクリア
                         setAutoPrintQueue([]);
@@ -245,7 +253,7 @@
                         setPrintType('invoice'); 
                     }, 800);
                 }
-            }, [orders, isAutoPrintEnabled, printedOrderIds, autoPrintQueue, printOrders, isLoadingData, isFetchingData]);
+            }, [orders, isAutoPrintEnabled, printLogs, autoPrintQueue, printOrders, isLoadingData, isFetchingData]);
 
 
             const handleActionClick = (productId, actionType) => {
@@ -1227,16 +1235,34 @@
                                 </div>
                                 <div className="flex justify-between items-center border-t border-gray-100 pt-2 mt-1">
                                     <span className="text-gray-500 font-bold">印刷済み件数:</span>
-                                    <span className="font-bold text-gray-800">{printedOrderIds.length} 件</span>
+                                    <span className="font-bold text-gray-800">{printLogs.length} 件</span>
                                 </div>
-                                <div className="text-right">
-                                    <button onClick={() => {
-                                        if(confirm("印刷履歴をリセットしますか？\n（リセットすると現在未対応の注文がすべて再度印刷されます）")) {
-                                            setPrintedOrderIds([]);
-                                            localStorage.removeItem('nanairo_printed_orders');
-                                        }
-                                    }} className="text-[10px] text-gray-400 underline py-1 hover:text-gray-600">履歴をリセット</button>
-                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <div className="flex justify-between items-center mb-3">
+                                <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2">
+                                    <Icons.History className="w-4 h-4 text-gray-400"/> 印刷実行ログ (この端末)
+                                </h3>
+                                <button onClick={() => {
+                                    if(confirm("印刷ログをリセットしますか？\n（リセットすると現在未対応の注文がすべて再度印刷されます）")) {
+                                        setPrintLogs([]);
+                                        localStorage.removeItem('nanairo_print_log');
+                                    }
+                                }} className="text-[10px] text-gray-400 underline hover:text-gray-600">ログをリセット</button>
+                            </div>
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {printLogs.length === 0 ? (
+                                    <p className="text-xs text-gray-500 text-center py-2">ログはありません</p>
+                                ) : (
+                                    printLogs.map((log, idx) => (
+                                        <div key={idx} className="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-100">
+                                            <span className="text-xs font-bold text-gray-700">{log.userName} 様</span>
+                                            <span className="text-[10px] text-gray-500">{log.printedAt} 印刷</span>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
 
