@@ -47,7 +47,7 @@
 
         /* 印刷・PDF用の徹底的なスタイル調整 */
         @media print {
-            @page { margin: 0; size: A4 portrait; } 
+            @page { margin: 0; size: auto; } 
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: white; } 
             body * { visibility: hidden; }
             .print-area, .print-area * { visibility: visible; }
@@ -58,6 +58,18 @@
             .no-print { display: none !important; }
             .page-break { page-break-after: always; margin-bottom: 0 !important; border: none !important; }
             .app-container { max-width: 100%; background-color: white; box-shadow: none; }
+            
+            /* キッチンプリンター用スタイル */
+            .receipt-print {
+                width: 100%;
+                max-width: 80mm; /* 80mmロール紙対応 */
+                margin: 0 auto;
+                font-family: 'Helvetica Neue', monospace, sans-serif;
+                color: #000;
+            }
+            .receipt-print * {
+                visibility: visible;
+            }
         }
     </style>
 </head>
@@ -84,7 +96,8 @@
             X: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
             Award: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>,
             XCircle: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>,
-            AlertCircle: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+            Info: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
+            Server: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>,
             History: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
         };
 
@@ -114,7 +127,6 @@
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [message, setMessage] = useState('');
             
-            // ★追加: 一括ロス用State
             const [showBulkLossModal, setShowBulkLossModal] = useState(false);
             const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
 
@@ -140,6 +152,14 @@
             const [reportEndDate, setReportEndDate] = useState('');
             const [reportClosingDate, setReportClosingDate] = useState('');
 
+            // ★追加：印刷ハブ用のState
+            const [isAutoPrintEnabled, setIsAutoPrintEnabled] = useState(false);
+            const [printedOrderIds, setPrintedOrderIds] = useState(() => {
+                try { return JSON.parse(localStorage.getItem('nanairo_printed_orders')) || []; }
+                catch { return []; }
+            });
+            const [autoPrintQueue, setAutoPrintQueue] = useState([]);
+
             const fetchData = async (startMonth, endMonth) => {
                 setIsFetchingData(true);
                 try {
@@ -152,7 +172,6 @@
                         return;
                     }
                     if (data.products) {
-                        // ★修正: なないろ菜を管理画面の一覧からも除外
                         setProducts(data.products.filter(p => p.name !== "なないろ菜"));
                     }
                     if (data.orders) setOrders(data.orders);
@@ -160,19 +179,74 @@
                     if (data.stockLogs) setStockLogs(data.stockLogs);
                 } catch (error) {
                     console.error("通信エラー:", error);
-                    alert("通信エラーが発生しました。");
                 } finally {
                     setIsLoadingData(false);
                     setIsFetchingData(false);
                 }
             };
 
+            // 手動・タブ切り替え用のフェッチ
             useEffect(() => {
                 if (viewStartMonth > viewEndMonth) setViewEndMonth(viewStartMonth);
                 fetchData(viewStartMonth, viewEndMonth);
             }, [viewStartMonth, viewEndMonth]);
 
             const handleRefresh = () => fetchData(viewStartMonth, viewEndMonth);
+
+            // ★追加：ハブ機能 - 自動フェッチループ
+            useEffect(() => {
+                let intervalId;
+                if (isAutoPrintEnabled) {
+                    intervalId = setInterval(() => {
+                        fetchData(viewStartMonth, viewEndMonth);
+                    }, 30000); // 30秒ごとに自動更新
+                }
+                return () => {
+                    if (intervalId) clearInterval(intervalId);
+                };
+            }, [isAutoPrintEnabled, viewStartMonth, viewEndMonth]);
+
+            // ★追加：ハブ機能 - 自動印刷実行ロジック
+            useEffect(() => {
+                if (!isAutoPrintEnabled) return;
+                if (isLoadingData || isFetchingData) return;
+
+                // 未対応 かつ 印刷履歴にない注文を抽出
+                const unprinted = orders.filter(o => o.status === '未対応' && !printedOrderIds.includes(o.id));
+                
+                // 印刷キューが空の場合にのみ処理をキックする
+                if (unprinted.length > 0 && autoPrintQueue.length === 0 && printOrders.length === 0) {
+                    // ★通知音を鳴らす（ブラウザの仕様で再生がブロックされる可能性はありますが可能な限り鳴らします）
+                    try {
+                        const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+                        audio.play().catch(e => console.log('Audio play blocked:', e));
+                    } catch(e) {}
+
+                    // ★画面上部にメッセージを表示
+                    setMessage(`${unprinted.length}件の新規注文が入りました！`);
+                    setTimeout(() => setMessage(''), 6000);
+
+                    setAutoPrintQueue(unprinted);
+                    setPrintOrders(unprinted);
+                    setPrintType('kitchen_receipt'); // キッチンプリンター用レシート出力
+                    
+                    // レンダリングが完了するのを待ってから印刷実行
+                    setTimeout(() => {
+                        window.print();
+                        
+                        // 印刷済みに登録
+                        const newPrintedIds = [...printedOrderIds, ...unprinted.map(o => o.id)];
+                        setPrintedOrderIds(newPrintedIds);
+                        localStorage.setItem('nanairo_printed_orders', JSON.stringify(newPrintedIds));
+                        
+                        // キューと画面をクリア
+                        setAutoPrintQueue([]);
+                        setPrintOrders([]);
+                        setPrintType('invoice'); 
+                    }, 800);
+                }
+            }, [orders, isAutoPrintEnabled, printedOrderIds, autoPrintQueue, printOrders, isLoadingData, isFetchingData]);
+
 
             const handleActionClick = (productId, actionType) => {
                 setSelectedProductId(productId);
@@ -218,7 +292,6 @@
                 }
             };
 
-            // ★追加: 一括ロス実行ハンドラー
             const handleBulkLoss = async () => {
                 setIsBulkSubmitting(true);
                 try {
@@ -351,6 +424,57 @@
                 if(printOrders.length === 0) return null;
                 const todayText = toWareki(new Date().toISOString().split('T')[0]);
 
+                // ★追加：キッチンプリンター（レシート）出力ビュー
+                if (printType === 'kitchen_receipt') {
+                    return (
+                        <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col print-area h-screen overflow-y-auto">
+                            <div className="no-print bg-blue-100 p-4 font-bold text-blue-800 flex justify-between items-center shadow-sm z-10 sticky top-0">
+                                <span className="flex items-center gap-2"><Icons.Printer className="w-5 h-5"/>自動印刷プレビュー (レシート形式)</span>
+                                <button onClick={() => { setPrintOrders([]); setAutoPrintQueue([]); setPrintType('invoice'); }} className="bg-white px-3 py-1.5 rounded-lg shadow-sm text-sm active:bg-gray-50 text-gray-700">
+                                    閉じる
+                                </button>
+                            </div>
+                            <div className="p-4 mt-2 overflow-x-auto flex-1 bg-white sm:bg-gray-100">
+                                {printOrders.map(order => (
+                                    <div key={order.id} className="receipt-page-break bg-white p-4 mb-4 receipt-print mx-auto text-black border sm:shadow-sm" style={{width: '100%', maxWidth: '80mm', boxSizing: 'border-box'}}>
+                                        <div className="text-center font-bold text-xl mb-4 border-b-2 border-black pb-2 tracking-widest">新規注文</div>
+                                        <div className="text-sm mb-3">
+                                            <div className="mb-1">注文日: <span className="font-mono">{order.orderDate}</span></div>
+                                            <div className="text-lg font-bold my-2">{order.userName} 様</div>
+                                            <div className="bg-gray-200 p-2 rounded text-center border border-black font-bold">
+                                                受取予定<br/>
+                                                <span className="text-xl">{order.pickupDate} {order.pickupTime}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="text-base font-bold border-t-2 border-dashed border-black pt-3 mt-3 mb-2">
+                                            {order.itemsList && order.itemsList.map((item, idx) => (
+                                                <div key={idx} className="flex justify-between items-start my-2 leading-tight">
+                                                    <span className="pr-2">{item.name}</span>
+                                                    <span className="whitespace-nowrap text-lg">x {item.qty}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        
+                                        <div className="text-base border-t-2 border-dashed border-black pt-2 pb-2 flex justify-between font-bold mt-2">
+                                            <span>合計</span>
+                                            <span className="text-xl">¥{(order.totalPrice || 0).toLocaleString()}</span>
+                                        </div>
+                                        
+                                        {order.memo && order.memo !== "なし" && (
+                                            <div className="text-sm font-bold mt-4 border-2 border-black p-2 rounded">
+                                                【備考】<br/>{order.memo}
+                                            </div>
+                                        )}
+                                        <div className="text-center text-xs mt-6 mb-2 text-gray-600">--- N-SKETCH ---</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                }
+
+                // 月次請求書
                 if (printType === 'monthly_report') {
                     const customer = printOrders[0];
                     
@@ -791,13 +915,6 @@
                         </button>
                     </div>
 
-                    {message && (
-                        <div className="bg-nanairo-light border border-nanairo text-nanairo-dark px-4 py-3 rounded-xl flex items-center gap-2 animate-fade-in">
-                            <Icons.Check className="w-5 h-5" />
-                            <span className="font-bold text-sm">{message}</span>
-                        </div>
-                    )}
-
                     <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50 border-b border-gray-200">
@@ -832,7 +949,6 @@
                         </table>
                     </section>
 
-                    {/* ★追加: 一括ロスボタン */}
                     <button onClick={() => setShowBulkLossModal(true)} className="w-full bg-red-50 text-red-600 border border-red-200 rounded-xl py-3 font-bold text-sm mb-6 active:bg-red-100 flex justify-center items-center gap-2 shadow-sm">
                         <Icons.AlertTriangle className="w-4 h-4"/> 現在の全在庫を一括でロス (破棄) する
                     </button>
@@ -877,7 +993,6 @@
                                 <textarea value={stockMemo} onChange={e => setStockMemo(e.target.value)} placeholder="例：鮮度落ち、店頭での現金販売など" className="w-full border border-gray-300 rounded-lg p-3 text-sm bg-gray-50 h-16 resize-none focus:ring-2 focus:ring-nanairo-dark outline-none"></textarea>
                             </div>
                             
-                            {/* ★修正: ボタンの文言を「入力」に変更 */}
                             <button onClick={handleSubmitStock} disabled={isSubmitting || !selectedProductId} className={`w-full py-3.5 rounded-xl font-bold shadow-md transition-colors flex justify-center items-center gap-2 mt-2 
                                 ${(!selectedProductId || isSubmitting) ? 'bg-gray-300 text-gray-500' : 
                                   type === 'add' ? 'bg-nanairo-dark text-white' : 
@@ -1074,6 +1189,96 @@
                 );
             };
 
+            // ==========================================
+            // UIコンポーネント: 4. 自動印刷ハブタブ (★追加)
+            // ==========================================
+            const renderHubTab = () => {
+                return (
+                    <div className="animate-slide-up space-y-5">
+                        <div className="flex justify-between items-end border-l-4 border-purple-600 pl-2 mb-4">
+                            <h1 className="text-xl font-bold text-gray-800">自動印刷ハブ</h1>
+                        </div>
+
+                        <div className={`p-5 rounded-2xl shadow-sm border transition-colors ${isAutoPrintEnabled ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
+                            <div className="flex justify-between items-center mb-4">
+                                <div>
+                                    <h2 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                        <Icons.Server className={`w-5 h-5 ${isAutoPrintEnabled ? 'text-blue-600' : 'text-gray-400'}`} />
+                                        ハブ機能
+                                    </h2>
+                                    <p className="text-xs text-gray-500 mt-1">オンにすると新着注文を監視し、自動で印刷します。</p>
+                                </div>
+                                
+                                <div 
+                                    onClick={() => setIsAutoPrintEnabled(!isAutoPrintEnabled)}
+                                    className={`w-14 h-8 flex items-center rounded-full p-1 cursor-pointer transition-colors ${isAutoPrintEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                >
+                                    <div className={`bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${isAutoPrintEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-3 rounded-xl text-sm border border-gray-100 flex flex-col gap-2">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500 font-bold">状態:</span>
+                                    <span className={`font-bold flex items-center gap-1 ${isAutoPrintEnabled ? 'text-blue-600' : 'text-gray-500'}`}>
+                                        {isAutoPrintEnabled && <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>}
+                                        {isAutoPrintEnabled ? '監視中 (30秒間隔)' : '停止中'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center border-t border-gray-100 pt-2 mt-1">
+                                    <span className="text-gray-500 font-bold">印刷済み件数:</span>
+                                    <span className="font-bold text-gray-800">{printedOrderIds.length} 件</span>
+                                </div>
+                                <div className="text-right">
+                                    <button onClick={() => {
+                                        if(confirm("印刷履歴をリセットしますか？\n（リセットすると現在未対応の注文がすべて再度印刷されます）")) {
+                                            setPrintedOrderIds([]);
+                                            localStorage.removeItem('nanairo_printed_orders');
+                                        }
+                                    }} className="text-[10px] text-gray-400 underline py-1 hover:text-gray-600">履歴をリセット</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2"><Icons.Info className="w-4 h-4 text-gray-400"/> 使い方と準備</h3>
+                            <ul className="text-xs text-gray-600 space-y-3 list-disc pl-4 leading-relaxed">
+                                <li>
+                                    このPCとキッチンプリンター（TM-T90KP）を接続し、PCの「既定のプリンター」として設定してください。<br/>
+                                    用紙サイズは「80×297mm」などのロール紙設定にしておきます。
+                                </li>
+                                <li>監視をオンにしたまま、この画面を閉じずに開きっぱなしにしてください。</li>
+                                <li>新規の注文が入ると自動的に印刷プレビューが立ち上がり、印刷を実行します（iPad等の場合は「プリント」を手動でタップしてください）。</li>
+                            </ul>
+                        </div>
+                        
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2">テスト印刷</h3>
+                            <button onClick={() => {
+                                setPrintType('kitchen_receipt');
+                                setPrintOrders([{
+                                    id: 'test-123',
+                                    orderDate: new Date().toLocaleString(),
+                                    userName: 'テスト 太郎',
+                                    pickupDate: toWareki(new Date()),
+                                    pickupTime: '12:00-13:00',
+                                    itemsList: [{name: 'テスト商品（見本）', qty: 2}, {name: 'なないろ菜ミックス（見本）', qty: 1}],
+                                    totalPrice: 1500,
+                                    memo: 'これはプリンター動作確認のためのテスト印刷です。'
+                                }]);
+                                setTimeout(() => {
+                                    window.print();
+                                    setPrintOrders([]);
+                                    setPrintType('invoice');
+                                }, 500);
+                            }} className="w-full bg-gray-800 text-white text-sm font-bold px-4 py-3 rounded-lg active:bg-gray-900 flex justify-center items-center gap-2">
+                                <Icons.Printer className="w-4 h-4"/> テストレシートを出力
+                            </button>
+                        </div>
+                    </div>
+                );
+            };
+
             const renderCustomerModal = () => {
                 if (!showCustomerModal) return null;
                 const c = showCustomerModal;
@@ -1197,14 +1402,23 @@
                     <header className="no-print sticky top-0 z-30 bg-nanairo-light px-4 py-3 flex justify-between items-center shadow-sm">
                         <div className="flex items-center gap-2">
                             <div className="w-7 h-7 bg-line rounded-full flex items-center justify-center text-white font-bold text-[9px] tracking-tighter">LINE</div>
-                            <span className="font-bold text-gray-800 text-sm">なないろ菜・マイクロハーブ <span className="text-nanairo-dark text-xs ml-1">[管理]</span></span>
+                            <span className="font-bold text-gray-800 text-sm">マイクロハーブ <span className="text-nanairo-dark text-xs ml-1">[管理]</span></span>
                         </div>
                     </header>
+
+                    {/* ★グローバル通知トースト */}
+                    {message && (
+                        <div className="no-print fixed top-16 left-0 right-0 mx-auto w-11/12 max-w-[500px] z-[60] bg-nanairo-light border border-nanairo text-nanairo-dark px-4 py-3 rounded-xl flex items-center gap-2 animate-slide-up shadow-lg">
+                            <Icons.Check className="w-5 h-5 shrink-0" />
+                            <span className="font-bold text-sm">{message}</span>
+                        </div>
+                    )}
 
                     <main className="no-print flex-1 px-4 pt-4 pb-[120px]">
                         {activeTab === 'orders' && renderOrdersTab()}
                         {activeTab === 'inventory' && renderInventoryTab()}
                         {activeTab === 'analytics' && renderAnalyticsTab()}
+                        {activeTab === 'hub' && renderHubTab()}
                     </main>
 
                     <div className="no-print fixed bottom-0 left-0 right-0 mx-auto w-full max-w-[600px] bg-white border-t border-gray-200 flex h-[60px] z-40 pb-[env(safe-area-inset-bottom)] box-border">
@@ -1212,18 +1426,25 @@
                             <div className="relative">
                                 <Icons.ClipboardList className="w-6 h-6" />
                                 {orders.filter(o=>o.status==='未対応').length > 0 && (
-                                    <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white"></div>
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
                                 )}
                             </div>
                             <span className="text-[10px] font-bold">注文対応</span>
                         </button>
                         <button onClick={() => setActiveTab('inventory')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'inventory' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
                             <Icons.Box className="w-6 h-6" />
-                            <span className="text-[10px] font-bold">在庫・店頭販売</span>
+                            <span className="text-[10px] font-bold">在庫・販売</span>
                         </button>
                         <button onClick={() => setActiveTab('analytics')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'analytics' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
                             <Icons.TrendingUp className="w-6 h-6" />
                             <span className="text-[10px] font-bold">分析</span>
+                        </button>
+                        <button onClick={() => setActiveTab('hub')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'hub' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
+                            <div className="relative">
+                                <Icons.Server className="w-6 h-6" />
+                                {isAutoPrintEnabled && <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse border-2 border-white"></div>}
+                            </div>
+                            <span className="text-[10px] font-bold">印刷ハブ</span>
                         </button>
                     </div>
 
@@ -1232,7 +1453,6 @@
                     {renderAllProductsModal()}
                     {renderAllCustomersModal()}
 
-                    {/* ★修正: スクロールしても常に画面中央に出るように、モーダルの位置を一番外側に移動しました */}
                     {showBulkLossModal && (
                         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in no-print">
                             <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
@@ -1258,7 +1478,6 @@
                         </div>
                     )}
 
-                    {/* こちらの取消モーダルも同様に外側に移動しています */}
                     {cancelTargetLog && (
                         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in no-print">
                             <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
