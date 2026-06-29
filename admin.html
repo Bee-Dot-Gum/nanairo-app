@@ -45,7 +45,6 @@
         .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 
-        /* 印刷・PDF用の徹底的なスタイル調整 */
         @media print {
             @page { margin: 0; size: auto; } 
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: white; } 
@@ -59,7 +58,6 @@
             .page-break { page-break-after: always; margin-bottom: 0 !important; border: none !important; }
             .app-container { max-width: 100%; background-color: white; box-shadow: none; }
             
-            /* キッチンプリンター用スタイル */
             .receipt-print {
                 width: 100%;
                 max-width: 80mm;
@@ -67,9 +65,7 @@
                 font-family: 'Helvetica Neue', monospace, sans-serif;
                 color: #000;
             }
-            .receipt-print * {
-                visibility: visible;
-            }
+            .receipt-print * { visibility: visible; }
         }
     </style>
 </head>
@@ -98,10 +94,10 @@
             XCircle: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>,
             Info: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
             Server: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>,
-            History: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+            History: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>,
+            Wifi: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
         };
 
-        // ★あなたの環境のGAS URL
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
 
         const toWareki = (dateStr) => {
@@ -127,7 +123,6 @@
             const [stockMemo, setStockMemo] = useState(''); 
             const [isSubmitting, setIsSubmitting] = useState(false);
             
-            // ★トーストメッセージ用のステート
             const [message, setMessage] = useState('');
             const showMessage = (text, duration = 4000) => {
                 setMessage(text);
@@ -158,6 +153,22 @@
             const [reportStartDate, setReportStartDate] = useState('');
             const [reportEndDate, setReportEndDate] = useState('');
             const [reportClosingDate, setReportClosingDate] = useState('');
+
+            // ★ダイレクト印刷 (ePOS) 関連のステート
+            const [isDirectPrintEnabled, setIsDirectPrintEnabled] = useState(() => {
+                return localStorage.getItem('nanairo_direct_print') === 'true';
+            });
+            const [printerIp, setPrinterIp] = useState(() => {
+                return localStorage.getItem('nanairo_printer_ip') || '192.168.0.5';
+            });
+
+            useEffect(() => {
+                localStorage.setItem('nanairo_direct_print', isDirectPrintEnabled);
+            }, [isDirectPrintEnabled]);
+
+            useEffect(() => {
+                localStorage.setItem('nanairo_printer_ip', printerIp);
+            }, [printerIp]);
 
             const [isAutoPrintEnabled, setIsAutoPrintEnabled] = useState(false);
             const [printLogs, setPrintLogs] = useState(() => {
@@ -209,6 +220,89 @@
                 };
             }, [isAutoPrintEnabled, viewStartMonth, viewEndMonth]);
 
+            // ==========================================
+            // ★ ePOS-Print (ダイレクト強制印刷) の中核処理
+            // ==========================================
+            const generateEPOSPrintXML = (order, type, targetName) => {
+                let xml = `<?xml version="1.0" encoding="utf-8"?>`;
+                xml += `<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body>`;
+                xml += `<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">`;
+                
+                if (type === 'kitchen_receipt') {
+                    xml += `<text lang="ja" align="center" smooth="true" width="2" height="2">新規注文&#10;</text>`;
+                    xml += `<text align="left">&#10;注文日: ${order.orderDate}&#10;</text>`;
+                    xml += `<text width="2" height="2">${order.userName} 様&#10;</text>`;
+                    xml += `<text align="center" reverse="true">受取予定: ${order.pickupDate} ${order.pickupTime}&#10;</text>`;
+                    xml += `<text align="left">&#10;------------------------------------------&#10;</text>`;
+                    if (order.itemsList) {
+                        order.itemsList.forEach(item => {
+                            xml += `<text>${item.name}  x ${item.qty}&#10;</text>`;
+                        });
+                    }
+                    xml += `<text>------------------------------------------&#10;</text>`;
+                    xml += `<text width="2" height="2">合計: ¥${(order.totalPrice || 0).toLocaleString()}&#10;</text>`;
+                    if (order.memo && order.memo !== "なし") {
+                        xml += `<text>&#10;【備考】&#10;${order.memo}&#10;</text>`;
+                    }
+                    xml += `<text align="center">&#10;--- N-SKETCH ---&#10;</text>`;
+                } else {
+                    const title = type === 'invoice' ? '納 品 書' : '領 収 書';
+                    xml += `<text lang="ja" align="right" smooth="true">発行日: ${toWareki(new Date().toISOString().split('T')[0])}&#10;登録番号: T390001016462&#10;&#10;</text>`;
+                    xml += `<text align="left" width="2" height="2">${targetName} 様&#10;</text>`;
+                    xml += `<text align="right" width="2" height="2">${title}&#10;&#10;</text>`;
+                    xml += `<text align="right">（株）N-SKETCH のぞみの家&#10;〒997-0018 山形県鶴岡市茅原町26-23&#10;TEL 0235-26-0759 / FAX 0235-26-0758&#10;&#10;</text>`;
+                    if (type === 'receipt') {
+                        xml += `<text align="left">金額: </text><text width="2" height="2">¥${(order.totalPrice || 0).toLocaleString()} -&#10;</text>`;
+                        xml += `<text>但 マイクロハーブ代として 上記正に領収いたしました。&#10;</text>`;
+                    } else {
+                        xml += `<text align="left">下記の通り納品申し上げます。&#10;</text>`;
+                        xml += `<text>御請求金額: </text><text width="2" height="2">¥${(order.totalPrice || 0).toLocaleString()}</text><text> (税込)&#10;</text>`;
+                    }
+                    xml += `<text>&#10;------------------------------------------&#10;</text>`;
+                    if (order.itemsList) {
+                        order.itemsList.forEach((item, i) => {
+                            const product = products.find(p => p.name === item.name);
+                            const unitPrice = product ? product.price : 0;
+                            xml += `<text>${i+1}. ${item.name} x ${item.qty} (¥${unitPrice}) : ¥${unitPrice * item.qty}&#10;</text>`;
+                        });
+                    }
+                    xml += `<text>------------------------------------------&#10;</text>`;
+                }
+                
+                xml += `<cut type="feed"/></epos-print></s:Body></s:Envelope>`;
+                return xml;
+            };
+
+            const executeDirectPrint = async (order, type, targetName) => {
+                const xmlData = generateEPOSPrintXML(order, type, targetName);
+                const url = `http://${printerIp}/cgi-bin/epos/dispPrint.cgi`;
+                
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/xml; charset=utf-8' },
+                        body: xmlData
+                    });
+                    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+                    return { success: true };
+                } catch (e) {
+                    console.error("Direct Print Failed:", e);
+                    // HTTPSへのフォールバックを試行
+                    try {
+                        const httpsUrl = `https://${printerIp}/cgi-bin/epos/dispPrint.cgi`;
+                        const httpsResponse = await fetch(httpsUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/xml; charset=utf-8' },
+                            body: xmlData
+                        });
+                        if (!httpsResponse.ok) throw new Error(`HTTPS Error: ${httpsResponse.status}`);
+                        return { success: true };
+                    } catch(e2) {
+                        return { success: false, error: e.message };
+                    }
+                }
+            };
+
             // 自動印刷実行ロジック
             useEffect(() => {
                 if (!isAutoPrintEnabled) return;
@@ -228,26 +322,53 @@
                     setPrintOrders(unprinted);
                     setPrintType('kitchen_receipt'); 
                     
-                    setTimeout(() => {
-                        window.print();
-                        
-                        const now = new Date();
-                        const timeStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                        const newLogs = unprinted.map(o => ({
-                            id: o.id,
-                            userName: o.userName,
-                            printedAt: timeStr
-                        }));
-                        const updatedLogs = [...newLogs, ...printLogs].slice(0, 100);
-                        setPrintLogs(updatedLogs);
-                        localStorage.setItem('nanairo_print_log', JSON.stringify(updatedLogs));
-                        
-                        setAutoPrintQueue([]);
-                        setPrintOrders([]);
-                        setPrintType('invoice'); 
+                    setTimeout(async () => {
+                        if (isDirectPrintEnabled) {
+                            // ★ダイレクト強制印刷
+                            let allSuccess = true;
+                            for (const order of unprinted) {
+                                const res = await executeDirectPrint(order, 'kitchen_receipt', order.userName);
+                                if (!res.success) {
+                                    allSuccess = false;
+                                    alert(`自動印刷に失敗しました (IP: ${printerIp})\nエラー: ${res.error}\n\niPhoneのSafariでは「安全でない通信(HTTP)」がブロックされる場合があります。`);
+                                    break;
+                                }
+                            }
+                            if (allSuccess) {
+                                const now = new Date();
+                                const timeStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                                const newLogs = unprinted.map(o => ({
+                                    id: o.id, userName: o.userName, printedAt: timeStr
+                                }));
+                                const updatedLogs = [...newLogs, ...printLogs].slice(0, 100);
+                                setPrintLogs(updatedLogs);
+                                localStorage.setItem('nanairo_print_log', JSON.stringify(updatedLogs));
+                            }
+                            setAutoPrintQueue([]);
+                            setPrintOrders([]);
+                            setPrintType('invoice'); 
+                        } else {
+                            // 通常のAirPrint呼び出し
+                            window.print();
+                            
+                            const now = new Date();
+                            const timeStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                            const newLogs = unprinted.map(o => ({
+                                id: o.id,
+                                userName: o.userName,
+                                printedAt: timeStr
+                            }));
+                            const updatedLogs = [...newLogs, ...printLogs].slice(0, 100);
+                            setPrintLogs(updatedLogs);
+                            localStorage.setItem('nanairo_print_log', JSON.stringify(updatedLogs));
+                            
+                            setAutoPrintQueue([]);
+                            setPrintOrders([]);
+                            setPrintType('invoice'); 
+                        }
                     }, 800);
                 }
-            }, [orders, isAutoPrintEnabled, printLogs, autoPrintQueue, printOrders, isLoadingData, isFetchingData]);
+            }, [orders, isAutoPrintEnabled, isDirectPrintEnabled, printerIp, printLogs, autoPrintQueue, printOrders, isLoadingData, isFetchingData]);
 
 
             const handleActionClick = (productId, actionType) => {
@@ -371,7 +492,6 @@
                 }
             };
 
-            // ★全ての印刷プレビューを開く関数を堅牢化
             const openPrintPreview = (order, type) => {
                 setPrintOrders([order]);
                 setPrintType(type);
@@ -407,8 +527,26 @@
                 setPrintType(type);
             };
 
-            const executePrint = () => {
-                window.print();
+            // ★手動印刷実行時も、ダイレクト印刷モードなら直接送り込む
+            const executePrint = async () => {
+                if (isDirectPrintEnabled) {
+                    showMessage("プリンターへ直接データを送信中...");
+                    let successCount = 0;
+                    for (const order of printOrders) {
+                        const targetName = printOrders.length === 1 ? printName : (order.userName || '');
+                        const result = await executeDirectPrint(order, printType, targetName);
+                        if (result.success) successCount++;
+                        else {
+                            alert(`印刷に失敗しました (IP: ${printerIp})\n\n原因: ${result.error}\n\n※iPhoneのSafariでは「安全でない通信(HTTP)」がブロックされる場合があります。`);
+                            break;
+                        }
+                    }
+                    if (successCount === printOrders.length) {
+                        showMessage("✅ プリンターへの直接印刷が完了しました！");
+                    }
+                } else {
+                    window.print();
+                }
             };
 
             // ローディング画面
@@ -500,8 +638,8 @@
                                     <button onClick={() => setPrintOrders([])} className="text-gray-500 hover:text-gray-800 font-bold flex items-center gap-1">
                                         <Icons.X className="w-5 h-5"/> 閉じる
                                     </button>
-                                    <button onClick={executePrint} className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold shadow-sm active:bg-blue-700 flex items-center gap-2">
-                                        <Icons.Printer className="w-5 h-5"/> 印刷・PDF保存
+                                    <button onClick={executePrint} className={`px-5 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 ${isDirectPrintEnabled ? 'bg-nanairo-dark text-white active:bg-green-700' : 'bg-blue-600 text-white active:bg-blue-700'}`}>
+                                        <Icons.Printer className="w-5 h-5"/> {isDirectPrintEnabled ? 'ダイレクト印刷を実行' : '印刷・PDF保存'}
                                     </button>
                                 </div>
                                 
@@ -632,8 +770,8 @@
                                         className="border border-gray-300 rounded p-1.5 w-full text-sm font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                 </div>
                             )}
-                            <button onClick={executePrint} className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold shadow-sm active:bg-blue-700 flex items-center gap-2">
-                                <Icons.Printer className="w-5 h-5"/> 印刷を実行
+                            <button onClick={executePrint} className={`px-5 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 ${isDirectPrintEnabled ? 'bg-nanairo-dark text-white active:bg-green-700' : 'bg-blue-600 text-white active:bg-blue-700'}`}>
+                                <Icons.Printer className="w-5 h-5"/> {isDirectPrintEnabled ? 'ダイレクト印刷を実行' : '印刷を実行'}
                             </button>
                         </div>
                         
@@ -738,12 +876,11 @@
                                     <input type="month" value={viewEndMonth} onChange={(e) => setViewEndMonth(e.target.value)}
                                         className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24" />
                                 </div>
-                                <button onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100">
+                                <button type="button" onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100">
                                     <Icons.RefreshCw className={`w-5 h-5 ${isFetchingData ? 'animate-spin' : ''}`} />
                                 </button>
                             </div>
                             
-                            {/* ★一括出力ボタン */}
                             <div className="flex gap-2">
                                 <button type="button" onClick={() => openBulkPrintPreview('invoice')} className="flex-1 bg-white border border-gray-300 rounded-lg py-2 text-sm font-bold text-gray-700 shadow-sm active:bg-gray-50 flex justify-center items-center gap-2">
                                     <Icons.FileText className="w-4 h-4 text-blue-500"/> 納品書 一括出力
@@ -821,7 +958,6 @@
                                                     </button>
                                                 </div>
 
-                                                {/* ★個別の納品書・領収書出力ボタン */}
                                                 <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
                                                     <div className="flex gap-1 flex-1">
                                                         <button type="button" onClick={() => openPrintPreview(order, 'invoice')} className="flex-1 bg-gray-50 border border-gray-200 rounded-lg text-[11px] font-bold text-gray-600 active:bg-gray-100 flex items-center justify-center gap-1 h-10 shadow-sm">
@@ -891,10 +1027,10 @@
                                                     {!isCancelled && (
                                                         <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-gray-100">
                                                             <button type="button" onClick={() => openPrintPreview(order, 'invoice')} className="text-[10px] font-bold text-gray-500 border border-gray-300 bg-white px-2 py-1 rounded flex items-center gap-1 active:bg-gray-50">
-                                                                <Icons.Printer className="w-3 h-3"/>納品書
+                                                                <Icons.FileText className="w-3.5 h-3.5"/>納品書
                                                             </button>
                                                             <button type="button" onClick={() => openPrintPreview(order, 'receipt')} className="text-[10px] font-bold text-gray-500 border border-gray-300 bg-white px-2 py-1 rounded flex items-center gap-1 active:bg-gray-50">
-                                                                <Icons.Printer className="w-3 h-3"/>領収書
+                                                                <Icons.FileText className="w-3.5 h-3.5"/>領収書
                                                             </button>
                                                         </div>
                                                     )}
@@ -1051,7 +1187,6 @@
                 const isSingleMonth = viewStartMonth === viewEndMonth;
                 const periodText = isSingleMonth ? formatMonth(viewStartMonth) : `${formatMonth(viewStartMonth)} 〜 ${formatMonth(viewEndMonth)}`;
 
-                // ★エラー防止のための安全なデータ取得
                 const anData = analytics || {};
                 const topProducts = anData.topProducts || [];
                 const topCustomers = anData.topCustomers || [];
@@ -1205,24 +1340,59 @@
                         <div className="flex justify-between items-end border-l-4 border-purple-600 pl-2 mb-4">
                             <h1 className="text-xl font-bold text-gray-800">自動印刷ハブ</h1>
                         </div>
+                        
+                        {/* ★ダイレクト印刷（ePOS）設定パネル */}
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-blue-200">
+                            <div className="flex justify-between items-center mb-3">
+                                <div>
+                                    <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                                        <Icons.Wifi className="w-5 h-5 text-blue-500"/> ダイレクト強制印刷 (ePOS)
+                                    </h3>
+                                    <p className="text-[10px] text-gray-500 mt-1">AirPrintのプレビュー画面を開かずに直接データを送り込みます。</p>
+                                </div>
+                                <div 
+                                    onClick={() => setIsDirectPrintEnabled(!isDirectPrintEnabled)}
+                                    role="button"
+                                    className={`w-14 h-8 flex items-center rounded-full p-1 cursor-pointer transition-colors ${isDirectPrintEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                >
+                                    <div className={`bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${isDirectPrintEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                                </div>
+                            </div>
+                            
+                            {isDirectPrintEnabled && (
+                                <div className="mt-3 bg-blue-50 p-3 rounded-xl border border-blue-100">
+                                    <label className="text-xs font-bold text-blue-800 block mb-1">プリンターのIPアドレス (通常は変更不要)</label>
+                                    <input 
+                                        type="text" 
+                                        value={printerIp} 
+                                        onChange={(e) => setPrinterIp(e.target.value)} 
+                                        className="w-full border border-blue-200 rounded-lg p-2.5 text-sm font-mono outline-none focus:border-blue-500"
+                                        placeholder="例: 192.168.0.5"
+                                    />
+                                    <p className="text-[9px] text-red-500 font-bold mt-1.5 leading-relaxed">
+                                        ※iPhoneのSafariで通信エラーになる場合、本体の「設定」>「Safari」>「サイト越えトラッキングを防ぐ」をオフにするか、「安全でない通信」を許可する必要があります。
+                                    </p>
+                                </div>
+                            )}
+                        </div>
 
-                        <div className={`p-5 rounded-2xl shadow-sm border transition-colors ${isAutoPrintEnabled ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
+                        {/* 自動監視ハブ */}
+                        <div className={`p-5 rounded-2xl shadow-sm border transition-colors ${isAutoPrintEnabled ? 'bg-gray-50 border-gray-300' : 'bg-white border-gray-200'}`}>
                             <div className="flex justify-between items-center mb-4">
                                 <div>
                                     <h2 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                                        <Icons.Server className={`w-5 h-5 ${isAutoPrintEnabled ? 'text-blue-600' : 'text-gray-400'}`} />
-                                        ハブ機能
+                                        <Icons.Server className={`w-5 h-5 ${isAutoPrintEnabled ? 'text-gray-600' : 'text-gray-400'}`} />
+                                        新着注文の自動監視
                                     </h2>
                                     <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed font-bold">
-                                        オンにすると新着注文を監視し、アラート音でお知らせして印刷画面を開きます。<br/>
-                                        <span className="text-nanairo-dark">※通信量節約のため15分に1回確認します。</span>
+                                        オンにすると15分ごとに新着注文を検知し、自動で印刷を実行します。
                                     </p>
                                 </div>
                                 
                                 <div 
                                     onClick={() => setIsAutoPrintEnabled(!isAutoPrintEnabled)}
                                     role="button"
-                                    className={`w-14 h-8 flex items-center rounded-full p-1 cursor-pointer transition-colors ${isAutoPrintEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                    className={`w-14 h-8 flex items-center rounded-full p-1 cursor-pointer transition-colors ${isAutoPrintEnabled ? 'bg-gray-800' : 'bg-gray-300'}`}
                                 >
                                     <div className={`bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${isAutoPrintEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
                                 </div>
@@ -1231,8 +1401,8 @@
                             <div className="bg-white p-3 rounded-xl text-sm border border-gray-100 flex flex-col gap-2">
                                 <div className="flex justify-between">
                                     <span className="text-gray-500 font-bold">状態:</span>
-                                    <span className={`font-bold flex items-center gap-1 ${isAutoPrintEnabled ? 'text-blue-600' : 'text-gray-500'}`}>
-                                        {isAutoPrintEnabled && <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>}
+                                    <span className={`font-bold flex items-center gap-1 ${isAutoPrintEnabled ? 'text-gray-800' : 'text-gray-500'}`}>
+                                        {isAutoPrintEnabled && <div className="w-2 h-2 rounded-full bg-gray-500 animate-pulse"></div>}
                                         {isAutoPrintEnabled ? '監視中 (15分間隔)' : '停止中'}
                                     </span>
                                 </div>
@@ -1268,20 +1438,8 @@
                                 )}
                             </div>
                         </div>
-
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                            <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2"><Icons.Info className="w-4 h-4 text-gray-400"/> 使い方と準備</h3>
-                            <ul className="text-xs text-gray-600 space-y-3 list-disc pl-4 leading-relaxed">
-                                <li>
-                                    このPCとキッチンプリンター（TM-T90KP）を接続し、PCの「既定のプリンター」として設定してください。<br/>
-                                    用紙サイズは「80×297mm」などのロール紙設定にしておきます。
-                                </li>
-                                <li>監視をオンにしたまま、この画面を閉じずに開きっぱなしにしてください。</li>
-                                <li>新規の注文が入ると自動的に印刷プレビューが立ち上がり、印刷を実行します（iPad等の場合は「プリント」を手動でタップしてください）。</li>
-                            </ul>
-                        </div>
                         
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-20">
                             <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2">テスト印刷</h3>
                             <button type="button" onClick={() => {
                                 setPrintType('kitchen_receipt');
@@ -1295,12 +1453,20 @@
                                     totalPrice: 1500,
                                     memo: 'これはプリンター動作確認のためのテスト印刷です。'
                                 }]);
-                                setTimeout(() => {
-                                    window.print();
-                                    setPrintOrders([]);
-                                    setPrintType('invoice');
+                                setTimeout(async () => {
+                                    if(isDirectPrintEnabled) {
+                                        const res = await executeDirectPrint(printOrders[0], 'kitchen_receipt', 'テスト 太郎');
+                                        if(!res.success) alert(`テスト印刷エラー:\n${res.error}`);
+                                        else showMessage("✅ テスト印刷に成功しました");
+                                        setPrintOrders([]);
+                                        setPrintType('invoice');
+                                    } else {
+                                        window.print();
+                                        setPrintOrders([]);
+                                        setPrintType('invoice');
+                                    }
                                 }, 500);
-                            }} className="w-full bg-gray-800 text-white text-sm font-bold px-4 py-3 rounded-lg active:bg-gray-900 flex justify-center items-center gap-2">
+                            }} className="w-full bg-gray-800 text-white text-sm font-bold px-4 py-3 rounded-xl active:bg-gray-900 flex justify-center items-center gap-2 shadow-sm">
                                 <Icons.Printer className="w-4 h-4"/> テストレシートを出力
                             </button>
                         </div>
