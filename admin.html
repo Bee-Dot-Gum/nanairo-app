@@ -324,7 +324,6 @@
                     
                     setTimeout(async () => {
                         if (isDirectPrintEnabled) {
-                            // ★ダイレクト強制印刷
                             let allSuccess = true;
                             for (const order of unprinted) {
                                 const res = await executeDirectPrint(order, 'kitchen_receipt', order.userName);
@@ -527,9 +526,9 @@
                 setPrintType(type);
             };
 
-            // ★手動印刷実行時も、ダイレクト印刷モードなら直接送り込む
+            // ★修正：キッチンのレシート以外はダイレクト印刷させない
             const executePrint = async () => {
-                if (isDirectPrintEnabled) {
+                if (isDirectPrintEnabled && printType === 'kitchen_receipt') {
                     showMessage("プリンターへ直接データを送信中...");
                     let successCount = 0;
                     for (const order of printOrders) {
@@ -537,7 +536,7 @@
                         const result = await executeDirectPrint(order, printType, targetName);
                         if (result.success) successCount++;
                         else {
-                            alert(`印刷に失敗しました (IP: ${printerIp})\n\n原因: ${result.error}\n\n※iPhoneのSafariでは「安全でない通信(HTTP)」がブロックされる場合があります。`);
+                            alert(`印刷に失敗しました (IP: ${printerIp})\n\n原因: ${result.error}\n\n※ブラウザの「安全でない通信(HTTP)」がブロックされている可能性があります。`);
                             break;
                         }
                     }
@@ -545,6 +544,7 @@
                         showMessage("✅ プリンターへの直接印刷が完了しました！");
                     }
                 } else {
+                    // 領収書・納品書・月次請求書は通常の印刷プレビューを開く
                     window.print();
                 }
             };
@@ -638,8 +638,8 @@
                                     <button onClick={() => setPrintOrders([])} className="text-gray-500 hover:text-gray-800 font-bold flex items-center gap-1">
                                         <Icons.X className="w-5 h-5"/> 閉じる
                                     </button>
-                                    <button onClick={executePrint} className={`px-5 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 ${isDirectPrintEnabled ? 'bg-nanairo-dark text-white active:bg-green-700' : 'bg-blue-600 text-white active:bg-blue-700'}`}>
-                                        <Icons.Printer className="w-5 h-5"/> {isDirectPrintEnabled ? 'ダイレクト印刷を実行' : '印刷・PDF保存'}
+                                    <button onClick={executePrint} className={`px-5 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 bg-blue-600 text-white active:bg-blue-700`}>
+                                        <Icons.Printer className="w-5 h-5"/> 印刷・PDF保存
                                     </button>
                                 </div>
                                 
@@ -770,8 +770,8 @@
                                         className="border border-gray-300 rounded p-1.5 w-full text-sm font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                 </div>
                             )}
-                            <button onClick={executePrint} className={`px-5 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 ${isDirectPrintEnabled ? 'bg-nanairo-dark text-white active:bg-green-700' : 'bg-blue-600 text-white active:bg-blue-700'}`}>
-                                <Icons.Printer className="w-5 h-5"/> {isDirectPrintEnabled ? 'ダイレクト印刷を実行' : '印刷を実行'}
+                            <button onClick={executePrint} className={`px-5 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 bg-blue-600 text-white active:bg-blue-700`}>
+                                <Icons.Printer className="w-5 h-5"/> 印刷を実行
                             </button>
                         </div>
                         
@@ -1370,7 +1370,7 @@
                                         placeholder="例: 192.168.0.5"
                                     />
                                     <p className="text-[9px] text-red-500 font-bold mt-1.5 leading-relaxed">
-                                        ※iPhoneのSafariで通信エラーになる場合、本体の「設定」>「Safari」>「サイト越えトラッキングを防ぐ」をオフにするか、「安全でない通信」を許可する必要があります。
+                                        ※iPhoneのSafari等で通信エラーになる場合、ブラウザの「安全でない通信」を許可する必要があります。
                                     </p>
                                 </div>
                             )}
@@ -1439,11 +1439,11 @@
                             </div>
                         </div>
                         
+                        {/* ★修正: テスト印刷ボタンのステート非同期バグを解消 */}
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-20">
                             <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2">テスト印刷</h3>
-                            <button type="button" onClick={() => {
-                                setPrintType('kitchen_receipt');
-                                setPrintOrders([{
+                            <button type="button" onClick={async () => {
+                                const testOrder = {
                                     id: 'test-123',
                                     orderDate: new Date().toLocaleString(),
                                     userName: 'テスト 太郎',
@@ -1452,20 +1452,18 @@
                                     itemsList: [{name: 'テスト商品（見本）', qty: 2}, {name: 'なないろ菜ミックス（見本）', qty: 1}],
                                     totalPrice: 1500,
                                     memo: 'これはプリンター動作確認のためのテスト印刷です。'
-                                }]);
-                                setTimeout(async () => {
-                                    if(isDirectPrintEnabled) {
-                                        const res = await executeDirectPrint(printOrders[0], 'kitchen_receipt', 'テスト 太郎');
-                                        if(!res.success) alert(`テスト印刷エラー:\n${res.error}`);
-                                        else showMessage("✅ テスト印刷に成功しました");
-                                        setPrintOrders([]);
-                                        setPrintType('invoice');
-                                    } else {
-                                        window.print();
-                                        setPrintOrders([]);
-                                        setPrintType('invoice');
-                                    }
-                                }, 500);
+                                };
+                                setPrintType('kitchen_receipt');
+                                setPrintOrders([testOrder]);
+                                
+                                if (isDirectPrintEnabled) {
+                                    showMessage("テスト印刷データを送信中...");
+                                    const res = await executeDirectPrint(testOrder, 'kitchen_receipt', 'テスト 太郎');
+                                    if (!res.success) alert(`テスト印刷エラー:\n${res.error}\n\n※ブラウザの「安全でない通信(HTTP)」がブロックされている可能性があります。`);
+                                    else showMessage("✅ テスト印刷に成功しました！");
+                                } else {
+                                    setTimeout(() => { window.print(); }, 500);
+                                }
                             }} className="w-full bg-gray-800 text-white text-sm font-bold px-4 py-3 rounded-xl active:bg-gray-900 flex justify-center items-center gap-2 shadow-sm">
                                 <Icons.Printer className="w-4 h-4"/> テストレシートを出力
                             </button>
