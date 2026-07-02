@@ -273,14 +273,20 @@
                 return xml;
             };
 
+            // ★修正ポイント：EPSONの汎用的なエンドポイント（URL）とSOAPActionヘッダーを追加
             const executeDirectPrint = async (order, type, targetName) => {
                 const xmlData = generateEPOSPrintXML(order, type, targetName);
-                const url = `http://${printerIp}/cgi-bin/epos/dispPrint.cgi`;
+                
+                // テストURL: 以前の dispPrint.cgi から service.cgi に変更
+                const url = `http://${printerIp}/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`;
                 
                 try {
                     const response = await fetch(url, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'text/xml; charset=utf-8' },
+                        headers: { 
+                            'Content-Type': 'text/xml; charset=utf-8',
+                            'SOAPAction': 'send' // ★機種によってはこれが必要
+                        },
                         body: xmlData
                     });
                     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
@@ -289,10 +295,13 @@
                     console.error("Direct Print Failed:", e);
                     // HTTPSへのフォールバックを試行
                     try {
-                        const httpsUrl = `https://${printerIp}/cgi-bin/epos/dispPrint.cgi`;
+                        const httpsUrl = `https://${printerIp}/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`;
                         const httpsResponse = await fetch(httpsUrl, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'text/xml; charset=utf-8' },
+                            headers: { 
+                                'Content-Type': 'text/xml; charset=utf-8',
+                                'SOAPAction': 'send'
+                            },
                             body: xmlData
                         });
                         if (!httpsResponse.ok) throw new Error(`HTTPS Error: ${httpsResponse.status}`);
@@ -329,7 +338,7 @@
                                 const res = await executeDirectPrint(order, 'kitchen_receipt', order.userName);
                                 if (!res.success) {
                                     allSuccess = false;
-                                    alert(`自動印刷に失敗しました (IP: ${printerIp})\nエラー: ${res.error}\n\niPhoneのSafariでは「安全でない通信(HTTP)」がブロックされる場合があります。`);
+                                    alert(`自動印刷に失敗しました (IP: ${printerIp})\nエラー: ${res.error}\n\n※ブラウザの「安全でない通信(HTTP)」がブロックされている可能性があります。`);
                                     break;
                                 }
                             }
