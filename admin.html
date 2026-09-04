@@ -71,6 +71,7 @@
         const isRechartsReady = typeof window !== 'undefined' && window.Recharts && window.Recharts.LineChart;
         const { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } = isRechartsReady ? window.Recharts : {};
 
+        //        // 欠損していた Store と XCircle アイコンを完全復活させました
         const Icons = {
             Plus: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
             Minus: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/></svg>,
@@ -90,11 +91,12 @@
             Award: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>,
             History: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>,
             Wifi: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
-            /* 追加: 委託販売・分析タブ用アイコン */
             Truck: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v11"/><path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>,
             PieChartIcon: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>,
             BarChartIcon: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>,
-            LineChartIcon: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            LineChartIcon: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>,
+            Store: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12v0a2 2 0 0 1-2-2V7"/></svg>,
+            XCircle: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
         };
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
@@ -106,7 +108,7 @@
             return `R${d.getFullYear() - 2018}.${d.getMonth() + 1}.${d.getDate()}`;
         };
 
-        function App() {
+        //        function App() {
             // アクティブタブ (orders, inventory, agency, analytics) ※hub(印刷)は非表示
             const [activeTab, setActiveTab] = useState('orders'); 
             
@@ -176,7 +178,7 @@
             const [invSalesQty, setInvSalesQty] = useState(0);
             const [invLossQty, setInvLossQty] = useState(0);
 
-            const fetchData = async (startMonth, endMonth) => {
+            //            const fetchData = async (startMonth, endMonth) => {
                 setIsFetchingData(true);
                 try {
                     const response = await fetch(`${GAS_URL}?action=getAdminData&month=${startMonth}&endMonth=${endMonth}`);
@@ -212,7 +214,7 @@
                 }, 50);
             };
 
-            const handleSubmitStock = async () => {
+            //            const handleSubmitStock = async () => {
                 if (!selectedProductId) return showMessage("商品を選択してください");
                 setIsSubmitting(true);
                 try {
@@ -281,7 +283,7 @@
                 } catch(error) { showMessage("確認状態の更新に失敗しました。"); fetchData(viewStartMonth, viewEndMonth); }
             };
 
-            const openPrintPreview = (order, type) => {
+            //            const openPrintPreview = (order, type) => {
                 setPrintOrders([order]); setPrintType(type); setPrintName(order.userName || '');
             };
 
@@ -306,7 +308,7 @@
                 window.print();
             };
 
-            const updateDeliveryCart = (productId, delta) => {
+            //            const updateDeliveryCart = (productId, delta) => {
                 setDeliveryCart(prev => {
                     const current = prev[productId] || 0; const next = Math.max(0, current + delta);
                     const newCart = { ...prev };
@@ -407,7 +409,7 @@
                 );
             }
 
-            const renderPrintView = () => {
+            //            const renderPrintView = () => {
                 if(printOrders.length === 0) return null;
                 const todayText = toWareki(new Date().toISOString().split('T')[0]);
 
@@ -891,7 +893,7 @@
                 const topCustomers = anData.topCustomers || [];
                 const stockStats = anData.stockStats || [];
 
-                // 直販と委託の比率データ計算 (エラー防護済み)
+                // 直販と委託の比率データ計算
                 const pieRatioData = useMemo(() => {
                     let directTotal = 0;
                     orders.forEach(o => {
@@ -913,7 +915,7 @@
                     ].filter(d => d.value > 0);
                 }, [orders, agencyDeliveries, viewStartMonth, viewEndMonth]);
 
-                // 日別売上推移データ計算 (エラー防護済み)
+                // 日別売上推移データ計算
                 const aggregatedChartData = useMemo(() => {
                     const daysMap = {};
                     orders.forEach(o => {
@@ -983,7 +985,7 @@
                             </div>
                         </div>
 
-                        {/* ★クラッシュ対策済みの安全なグラフセクション */}
+                        {/* 安全なグラフセクション */}
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                             <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                                 <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">売上推移・構成グラフ</h3>
@@ -994,7 +996,6 @@
                                 </div>
                             </div>
                             
-                            {/* ★ResponsiveContainerを外し、横スクロール可能な固定コンテナに変更（ブラウザによる無限ループ防止） */}
                             <div className="w-full overflow-x-auto pb-2" style={{minHeight: '260px'}}>
                                 {(!isRechartsReady) ? (
                                     <div className="h-full flex items-center justify-center text-sm text-gray-400 border border-dashed border-gray-200 rounded-lg py-20">
@@ -1093,7 +1094,7 @@
                 );
             };
 
-            const renderCustomerModal = () => {
+            //            const renderCustomerModal = () => {
                 if (!showCustomerModal) return null;
                 const c = showCustomerModal;
                 return (
@@ -1186,7 +1187,7 @@
                 )
             }
 
-            return (
+            //            return (
                 <div className="app-container">
                     <header className="no-print sticky top-0 z-30 bg-nanairo-light px-4 py-3 flex justify-between items-center shadow-sm">
                         <div className="flex items-center gap-2">
@@ -1214,7 +1215,7 @@
                     {renderAllProductsModal()}
                     {renderAllCustomersModal()}
 
-                    {/* ボトムナビゲーション (高さ拡張: h-[60px] -> h-[76px]) */}
+                    {/* 単一化＆高さ拡張(76px)されたボトムナビゲーション */}
                     <div className="no-print fixed bottom-0 left-0 right-0 mx-auto w-full max-w-[600px] bg-white border-t border-gray-200 flex h-[76px] z-40 pb-[env(safe-area-inset-bottom)] box-border">
                         <button type="button" onClick={() => setActiveTab('orders')} className={`flex-1 flex flex-col items-center justify-center gap-1.5 ${activeTab === 'orders' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
                             <div className="relative">
@@ -1353,36 +1354,6 @@
                             </div>
                         </div>
                     )}
-
-                    {/* ボトムナビゲーション (印刷タブを非表示に・スッキリ4分割) */}
-                    <div className="no-print fixed bottom-0 left-0 right-0 mx-auto w-full max-w-[600px] bg-white border-t border-gray-200 flex h-[60px] z-40 pb-[env(safe-area-inset-bottom)] box-border">
-                        <button type="button" onClick={() => setActiveTab('orders')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'orders' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
-                            <div className="relative">
-                                <Icons.ClipboardList className="w-6 h-6" />
-                                {orders.filter(o=>o.status==='未対応').length > 0 && (
-                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
-                                )}
-                            </div>
-                            <span className="text-[10px] font-bold">注文対応</span>
-                        </button>
-                        <button type="button" onClick={() => setActiveTab('inventory')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'inventory' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
-                            <Icons.Box className="w-6 h-6" />
-                            <span className="text-[10px] font-bold">在庫・販売</span>
-                        </button>
-                        <button type="button" onClick={() => setActiveTab('agency')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'agency' ? 'text-agency' : 'text-gray-400'}`}>
-                            <div className="relative">
-                                <Icons.Store className="w-6 h-6" />
-                                {agencyDeliveries.filter(d => d.status === "納品済").length > 0 && (
-                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-agency rounded-full border-2 border-white"></div>
-                                )}
-                            </div>
-                            <span className="text-[10px] font-bold">委託(卸し)</span>
-                        </button>
-                        <button type="button" onClick={() => setActiveTab('analytics')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'analytics' ? 'text-blue-600' : 'text-gray-400'}`}>
-                            <Icons.TrendingUp className="w-6 h-6" />
-                            <span className="text-[10px] font-bold">分析</span>
-                        </button>
-                    </div>
                 </div>
             );
         }
