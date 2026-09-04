@@ -71,7 +71,7 @@
         const isRechartsReady = typeof window !== 'undefined' && window.Recharts && window.Recharts.LineChart;
         const { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } = isRechartsReady ? window.Recharts : {};
 
-        //        // 欠損していた Store と XCircle アイコンを完全復活させました
+        // 欠損していた Store と XCircle アイコンを完全復活させました
         const Icons = {
             Plus: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
             Minus: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/></svg>,
@@ -108,7 +108,7 @@
             return `R${d.getFullYear() - 2018}.${d.getMonth() + 1}.${d.getDate()}`;
         };
 
-        //        function App() {
+        function App() {
             // アクティブタブ (orders, inventory, agency, analytics) ※hub(印刷)は非表示
             const [activeTab, setActiveTab] = useState('orders'); 
             
@@ -178,7 +178,7 @@
             const [invSalesQty, setInvSalesQty] = useState(0);
             const [invLossQty, setInvLossQty] = useState(0);
 
-            //            const fetchData = async (startMonth, endMonth) => {
+            const fetchData = async (startMonth, endMonth) => {
                 setIsFetchingData(true);
                 try {
                     const response = await fetch(`${GAS_URL}?action=getAdminData&month=${startMonth}&endMonth=${endMonth}`);
@@ -214,7 +214,7 @@
                 }, 50);
             };
 
-            //            const handleSubmitStock = async () => {
+            const handleSubmitStock = async () => {
                 if (!selectedProductId) return showMessage("商品を選択してください");
                 setIsSubmitting(true);
                 try {
@@ -283,7 +283,7 @@
                 } catch(error) { showMessage("確認状態の更新に失敗しました。"); fetchData(viewStartMonth, viewEndMonth); }
             };
 
-            //            const openPrintPreview = (order, type) => {
+            const openPrintPreview = (order, type) => {
                 setPrintOrders([order]); setPrintType(type); setPrintName(order.userName || '');
             };
 
@@ -308,7 +308,7 @@
                 window.print();
             };
 
-            //            const updateDeliveryCart = (productId, delta) => {
+            const updateDeliveryCart = (productId, delta) => {
                 setDeliveryCart(prev => {
                     const current = prev[productId] || 0; const next = Math.max(0, current + delta);
                     const newCart = { ...prev };
@@ -409,7 +409,7 @@
                 );
             }
 
-            //            const renderPrintView = () => {
+            const renderPrintView = () => {
                 if(printOrders.length === 0) return null;
                 const todayText = toWareki(new Date().toISOString().split('T')[0]);
 
@@ -1094,7 +1094,7 @@
                 );
             };
 
-            //            const renderCustomerModal = () => {
+            const renderCustomerModal = () => {
                 if (!showCustomerModal) return null;
                 const c = showCustomerModal;
                 return (
@@ -1187,7 +1187,7 @@
                 )
             }
 
-            //            return (
+            return (
                 <div className="app-container">
                     <header className="no-print sticky top-0 z-30 bg-nanairo-light px-4 py-3 flex justify-between items-center shadow-sm">
                         <div className="flex items-center gap-2">
