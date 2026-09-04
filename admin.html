@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>【管理者用】なないろ菜 統合ダッシュボード</title>
+    <link rel="icon" type="image/png" href="https://i.imgur.com/tqZC8OZ.png">
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+    <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <script>
@@ -86,8 +86,12 @@
             Server: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>,
             History: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>,
             Wifi: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
-            Info: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            PieChartIcon: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>,
+            BarChartIcon: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>,
+            LineChartIcon: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
         };
+
+        const { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = window.Recharts;
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
 
@@ -152,10 +156,10 @@
             const [reportStartDate, setReportStartDate] = useState('');
             const [reportEndDate, setReportEndDate] = useState('');
             const [reportClosingDate, setReportClosingDate] = useState('');
+            
+            const [chartType, setChartType] = useState('line'); // グラフ切り替え用ステート
 
-            // ▼印刷用
-            const [printOrders, setPrintOrders] = useState([]); 
-            const [printType, setPrintType] = useState('invoice'); 
+            // ★ダイレクト印刷 (ePOS) 関連のステート
             const [printName, setPrintName] = useState(''); 
             const [printHonorific, setPrintHonorific] = useState('御中');
 
@@ -1048,103 +1052,143 @@
             const renderAnalyticsTab = () => {
                 const formatMonth = (m) => m ? m.replace('-', '年') + '月' : '';
                 const isSingleMonth = viewStartMonth === viewEndMonth;
+                const periodText = isSingleMonth ? formatMonth(viewStartMonth) : `${formatMonth(viewStartMonth)} 〜 ${formatMonth(viewEndMonth)}`;
+
                 const anData = analytics || {};
+                const topProducts = anData.topProducts || [];
                 const topCustomers = anData.topCustomers || [];
-                
-                const generateInsights = () => {
-                    if (!anData.monthlySales) return "データがまだありません。";
-                    let text = `期間内の総売上は ¥${(anData.monthlySales).toLocaleString()} です。`;
-                    const lossRateAlerts = (anData.agencyLossRates || []).filter(a => a.lossRate >= 20);
-                    if (lossRateAlerts.length > 0) text += ` 特に ${lossRateAlerts[0].name} でのロス率が ${lossRateAlerts[0].lossRate}% と高めです。納品数の調整を検討してください。`;
-                    else if (anData.lossAmount > 0) text += ` 全体的なロスも抑えられており、適正な在庫管理ができています。`;
-                    if (anData.topProducts && anData.topProducts.length > 0) text += ` 最も売れているのは「${anData.topProducts[0].name}」です。`;
-                    return text;
-                };
+                const stockStats = anData.stockStats || [];
+
+                const aggregatedChartData = useMemo(() => {
+                    const daysMap = {};
+                    orders.forEach(o => {
+                        if(o.status === 'キャンセル' || !o.pickupDate) return;
+                        if(o.pickupDate >= `${viewStartMonth}-01` && o.pickupDate <= `${viewEndMonth}-31`) {
+                            if(!daysMap[o.pickupDate]) daysMap[o.pickupDate] = { date: o.pickupDate, '直販・店頭': 0, '委託販売': 0 };
+                            daysMap[o.pickupDate]['直販・店頭'] += o.totalPrice;
+                        }
+                    });
+                    const deliveries = agencyDeliveries || [];
+                    deliveries.forEach(d => {
+                        if(d.status !== '精算済' || !d.date) return;
+                        if(d.date >= `${viewStartMonth}-01` && d.date <= `${viewEndMonth}-31`) {
+                            if(!daysMap[d.date]) daysMap[d.date] = { date: d.date, '直販・店頭': 0, '委託販売': 0 };
+                            daysMap[d.date]['委託販売'] += Math.floor(d.pureSalesExTax * 1.08);
+                        }
+                    });
+                    return Object.values(daysMap).sort((a, b) => a.date.localeCompare(b.date)).map(d => ({...d, date: d.date.substring(5).replace('-','/')}));
+                }, [orders, agencyDeliveries, viewStartMonth, viewEndMonth]);
+
+                const pieRatioData = [
+                    { name: '直販・店頭', value: anData.directSalesTotal || 0, color: '#16a34a' },
+                    { name: '委託販売', value: anData.agencySalesTotal || 0, color: '#f97316' }
+                ].filter(d => d.value > 0);
+
+                const pieProductData = topProducts.slice(0, 5).map((p, idx) => {
+                    const colors = ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#e0e7ff'];
+                    return { name: p.name, value: p.qty, color: colors[idx] || '#ccc' };
+                });
 
                 return (
-                    <div className="animate-slide-up space-y-6 relative z-10">
-                        <div className="flex flex-col gap-3">
-                            <div className="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-                                <div className="flex items-center gap-2">
-                                    <Icons.Calendar className="w-5 h-5 text-blue-500" />
-                                    <input type="month" value={viewStartMonth} onChange={(e) => setViewStartMonth(e.target.value)} className="bg-transparent font-bold text-gray-700 outline-none text-sm w-24" />
-                                    <span className="text-gray-300">〜</span>
-                                    <input type="month" value={viewEndMonth} onChange={(e) => setViewEndMonth(e.target.value)} className="bg-transparent font-bold text-gray-700 outline-none text-sm w-24" />
-                                </div>
-                                <button type="button" onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-gray-50 rounded-xl active:bg-gray-100 text-gray-500"><Icons.RefreshCw className={`w-5 h-5 ${isFetchingData ? 'animate-spin' : ''}`} /></button>
+                    <div className="animate-slide-up space-y-5 relative z-10">
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="flex flex-wrap items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm w-fit">
+                                <Icons.Calendar className="w-4 h-4 text-gray-500" />
+                                <input type="month" value={viewStartMonth} onChange={(e) => setViewStartMonth(e.target.value)}
+                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24" />
+                                <span className="text-gray-400 font-bold">〜</span>
+                                <input type="month" value={viewEndMonth} onChange={(e) => setViewEndMonth(e.target.value)}
+                                    className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24" />
                             </div>
+                            <button type="button" onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100">
+                                <Icons.RefreshCw className={`w-5 h-5 ${isFetchingData ? 'animate-spin' : ''}`} />
+                            </button>
                         </div>
 
-                        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 shadow-lg text-white relative overflow-hidden">
-                            <div className="absolute top-0 right-0 -mr-4 -mt-4 opacity-10"><Icons.Activity className="w-32 h-32" /></div>
-                            <h2 className="font-bold text-lg mb-2 flex items-center gap-2 relative z-10"><Icons.Zap className="w-5 h-5 text-yellow-300"/> サマリーレポート</h2>
-                            <p className="text-sm leading-relaxed font-medium opacity-90 relative z-10">{generateInsights()}</p>
+                        <div className="flex justify-between items-end border-l-4 border-blue-600 pl-2">
+                            <h1 className="text-xl font-bold text-gray-800">ダッシュボード</h1>
+                            <span className="text-xs font-bold text-gray-500">{periodText}</span>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="col-span-2 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
-                                <span className="text-xs font-bold text-gray-400 mb-1 tracking-widest uppercase">TOTAL SALES</span>
-                                <div className="text-4xl font-extrabold text-gray-900 tracking-tight mb-3">¥{(anData.monthlySales || 0).toLocaleString()}</div>
-                                <div className="w-full flex justify-between px-4 pt-3 border-t border-gray-50">
-                                    <div className="text-center"><div className="text-[10px] text-gray-400 font-bold mb-0.5">直販・店頭</div><div className="font-bold text-sm text-green-600">¥{(anData.directSalesTotal || 0).toLocaleString()}</div></div>
-                                    <div className="text-center"><div className="text-[10px] text-gray-400 font-bold mb-0.5">委託 (純売上)</div><div className="font-bold text-sm text-orange-500">¥{(anData.agencySalesTotal || 0).toLocaleString()}</div></div>
-                                </div>
+                        <div className="grid grid-cols-2 gap-3 relative">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.TrendingUp className="w-3 h-3"/> 指定期間の総売上</div>
+                                <div className="text-2xl font-bold text-gray-900 tracking-tight">¥{(anData.monthlySales || 0).toLocaleString()}</div>
+                                <div className="text-[9px] text-gray-400 mt-1">※店頭販売・委託販売含む</div>
                             </div>
-                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                                <div className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-wider flex items-center gap-1"><Icons.ClipboardList className="w-3 h-3"/> 直販 注文件数</div>
-                                <div className="text-2xl font-bold text-gray-800">{anData.orderCount || 0} <span className="text-xs font-normal">件</span></div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.ClipboardList className="w-3 h-3"/> 注文・販売件数</div>
+                                <div className="text-2xl font-bold text-gray-900 tracking-tight">{anData.orderCount || 0} <span className="text-sm font-normal text-gray-500">件</span></div>
                             </div>
-                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                                <div className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-wider flex items-center gap-1"><Icons.User className="w-3 h-3"/> 直販 平均客単価</div>
-                                <div className="text-xl font-bold text-gray-800">¥{(anData.averageSpend || 0).toLocaleString()}</div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.User className="w-3 h-3"/> 平均客単価</div>
+                                <div className="text-xl font-bold text-gray-900 tracking-tight">¥{(anData.averageSpend || 0).toLocaleString()}</div>
                             </div>
-                            <div className="col-span-2 bg-red-50/50 p-4 rounded-2xl shadow-sm border border-red-100 flex justify-between items-center">
-                                <div>
-                                    <div className="text-[10px] text-red-400 font-bold mb-1 uppercase tracking-wider flex items-center gap-1"><Icons.AlertTriangle className="w-3 h-3"/> 総推定ロス金額</div>
-                                    <div className="text-xs text-gray-500">委託回収＋直販ロスの合算</div>
-                                </div>
-                                <div className="text-2xl font-bold text-red-600">¥{(anData.lossAmount || 0).toLocaleString()}</div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-red-100 bg-red-50/30">
+                                <div className="text-xs text-red-600 font-bold mb-1 flex items-center gap-1"><Icons.AlertTriangle className="w-3 h-3"/> 推定ロス金額</div>
+                                <div className="text-xl font-bold text-red-700 tracking-tight">¥{(anData.lossAmount || 0).toLocaleString()}</div>
                             </div>
                         </div>
 
-                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <h3 className="font-bold text-gray-800 text-sm mb-4 flex items-center gap-2"><Icons.Store className="w-4 h-4 text-orange-500"/> 委託先別 パフォーマンス (ロス率)</h3>
-                            <div className="space-y-4">
-                                {(anData.agencyLossRates || []).length > 0 ? (
-                                    anData.agencyLossRates.map((stat, idx) => {
-                                        const isHighLoss = stat.lossRate >= 20;
-                                        return (
-                                            <div key={idx}>
-                                                <div className="flex justify-between items-end mb-1.5"><div className="text-sm font-bold text-gray-700">{stat.name}</div><div className="text-xs font-bold text-gray-500"><span className={isHighLoss ? 'text-red-500' : 'text-gray-800'}>{stat.lossRate}%</span><span className="text-[10px] font-normal ml-1">(ロス {stat.lossQty} / 納品 {stat.deliveryQty})</span></div></div>
-                                                <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden shadow-inner"><div className={`h-full rounded-full transition-all duration-1000 ${isHighLoss ? 'bg-gradient-to-r from-red-400 to-red-500' : 'bg-gradient-to-r from-green-400 to-green-500'}`} style={{ width: `${stat.lossRate}%` }}></div></div>
-                                            </div>
-                                        )
-                                    })
-                                ) : <p className="text-xs text-gray-400 text-center py-2">データがありません</p>}
+                        {}
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                                <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">売上推移・構成グラフ</h3>
+                                <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                                    <button onClick={() => setChartType('line')} className={`p-1.5 rounded-md transition-colors ${chartType==='line'?'bg-white shadow-sm text-blue-600':'text-gray-400 hover:text-gray-600'}`} title="日別売上推移"><Icons.LineChartIcon className="w-4 h-4"/></button>
+                                    <button onClick={() => setChartType('pie_ratio')} className={`p-1.5 rounded-md transition-colors ${chartType==='pie_ratio'?'bg-white shadow-sm text-blue-600':'text-gray-400 hover:text-gray-600'}`} title="直販・委託比率"><Icons.PieChartIcon className="w-4 h-4"/></button>
+                                    <button onClick={() => setChartType('pie_product')} className={`p-1.5 rounded-md transition-colors ${chartType==='pie_product'?'bg-white shadow-sm text-blue-600':'text-gray-400 hover:text-gray-600'}`} title="商品売上比率"><Icons.BarChartIcon className="w-4 h-4"/></button>
+                                </div>
                             </div>
-                        </div>
+                            
+                            <div className="h-64 w-full">
+                                {chartType === 'line' && (
+                                    aggregatedChartData.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={aggregatedChartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                                <XAxis dataKey="date" tick={{fontSize: 10, fill: '#6b7280'}} tickMargin={10} axisLine={false} tickLine={false} />
+                                                <YAxis tick={{fontSize: 10, fill: '#6b7280'}} axisLine={false} tickLine={false} tickFormatter={(v) => `¥${v.toLocaleString()}`} />
+                                                <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', fontSize: '12px'}} formatter={(value) => `¥${value.toLocaleString()}`} />
+                                                <Legend wrapperStyle={{fontSize: '11px', paddingTop: '10px'}} />
+                                                <Line type="monotone" dataKey="直販・店頭" stroke="#16a34a" strokeWidth={3} dot={{r: 3, strokeWidth: 2}} activeDot={{r: 5}} />
+                                                <Line type="monotone" dataKey="委託販売" stroke="#f97316" strokeWidth={3} dot={{r: 3, strokeWidth: 2}} activeDot={{r: 5}} />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    ) : <div className="h-full flex items-center justify-center text-sm text-gray-400">データがありません</div>
+                                )}
+                                
+                                {chartType === 'pie_ratio' && (
+                                    pieRatioData.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie data={pieRatioData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} style={{fontSize: '11px', fontWeight: 'bold'}}>
+                                                    {pieRatioData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                                </Pie>
+                                                <Tooltip formatter={(value) => `¥${value.toLocaleString()}`} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', fontSize: '12px'}}/>
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    ) : <div className="h-full flex items-center justify-center text-sm text-gray-400">データがありません</div>
+                                )}
 
-                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <h3 className="font-bold text-gray-800 text-sm mb-4 flex items-center gap-2"><Icons.ShoppingBag className="w-4 h-4 text-blue-500"/> 総合 商品ランキング</h3>
-                            <div className="space-y-4">
-                                {(anData.topProducts || []).length > 0 ? (
-                                    anData.topProducts.slice(0, 5).map((p, idx) => {
-                                        const maxQty = anData.topProducts[0]?.qty || 1; const percent = Math.max(8, Math.round((p.qty / maxQty) * 100));
-                                        return (
-                                            <div key={p.name}>
-                                                <div className="flex justify-between items-end mb-1.5"><div className="text-sm font-bold text-gray-700 flex items-center gap-2"><span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] ${idx===0?'bg-yellow-100 text-yellow-700':idx===1?'bg-gray-100 text-gray-600':idx===2?'bg-orange-50 text-orange-600':'text-gray-400'}`}>{idx + 1}</span> {p.name}</div><div className="text-sm font-bold text-gray-800">{p.qty} <span className="text-[10px] text-gray-400 font-normal">P</span></div></div>
-                                                <div className="w-full bg-gray-50 h-2.5 rounded-full overflow-hidden"><div className="bg-gradient-to-r from-blue-400 to-blue-500 h-full rounded-full transition-all duration-1000" style={{ width: `${percent}%` }}></div></div>
-                                            </div>
-                                        )
-                                    })
-                                ) : <p className="text-xs text-gray-400 text-center py-2">データがありません</p>}
-                                {(anData.topProducts || []).length > 5 && (
-                                    <button type="button" onClick={() => setShowAllProductsModal(true)} className="w-full text-center text-xs font-bold text-blue-500 py-2 bg-blue-50 rounded-lg active:bg-blue-100 mt-2">すべて見る</button>
+                                {chartType === 'pie_product' && (
+                                    pieProductData.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={pieProductData} layout="vertical" margin={{ top: 0, right: 30, left: -20, bottom: 0 }}>
+                                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+                                                <XAxis type="number" hide />
+                                                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#374151', fontWeight: 'bold'}} width={100} />
+                                                <Tooltip cursor={{fill: '#f3f4f6'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', fontSize: '12px'}} formatter={(value) => `${value} P`} />
+                                                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                                                    {pieProductData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    ) : <div className="h-full flex items-center justify-center text-sm text-gray-400">データがありません</div>
                                 )}
                             </div>
                         </div>
 
-                        {/* LINE優良顧客ランキングを復活 */}
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-yellow-200">
                             <h3 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2"><Icons.Award className="w-4 h-4 text-yellow-500"/> LINE優良顧客ランキング</h3>
                             <p className="text-[10px] text-gray-500 mb-3">※店頭での直接販売分はここには含まれません。リストをタップすると「購入カルテ・請求明細書」が開きます。</p>
@@ -1363,37 +1407,37 @@
                     {renderAllProductsModal()}
                     {renderAllCustomersModal()}
 
-                    {/* キャンセル確認モーダル群 */}
-                    {cancelDeliveryTarget && (
-                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in no-print">
-                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
-                                <h3 className="text-lg font-bold text-gray-900 mb-2 text-center text-red-600 flex flex-col items-center gap-2"><Icons.AlertTriangle className="w-8 h-8"/> 納品を取り消しますか？</h3>
-                                <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-700 font-bold border border-gray-200 mb-5 text-center leading-relaxed">{cancelDeliveryTarget.agencyName}<br/>{cancelDeliveryTarget.productName} ({cancelDeliveryTarget.deliveryQty}P)</div>
-                                <p className="text-[10px] text-gray-500 mb-4 text-center">在庫は自動的にシステムへ返却されます。</p>
-                                <div className="flex gap-2">
-                                    <button type="button" onClick={() => setCancelDeliveryTarget(null)} disabled={isCancelling} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">閉じる</button>
-                                    <button type="button" onClick={handleCancelAgencyDelivery} disabled={isCancelling} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl active:bg-red-600 flex justify-center items-center">{isCancelling ? <div className="spinner border-l-white w-4 h-4"></div> : '取り消す'}</button>
-                                </div>
+                    {/* ボトムナビゲーション (印刷タブを非表示に・4分割) */}
+                    <div className="no-print fixed bottom-0 left-0 right-0 mx-auto w-full max-w-[600px] bg-white border-t border-gray-200 flex h-[60px] z-40 pb-[env(safe-area-inset-bottom)] box-border">
+                        <button type="button" onClick={() => setActiveTab('orders')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'orders' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
+                            <div className="relative">
+                                <Icons.ClipboardList className="w-6 h-6" />
+                                {orders.filter(o=>o.status==='未対応').length > 0 && (
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+                                )}
                             </div>
-                        </div>
-                    )}
-
-                    {cancelInventoryTarget && (
-                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in no-print">
-                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
-                                <h3 className="text-lg font-bold text-gray-900 mb-2 text-center text-red-600 flex flex-col items-center gap-2"><Icons.AlertTriangle className="w-8 h-8"/> 精算を取り消しますか？</h3>
-                                <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-700 font-bold border border-gray-200 mb-5 text-center leading-relaxed">{cancelInventoryTarget.agencyName}<br/>{cancelInventoryTarget.productName}</div>
-                                <p className="text-[10px] text-gray-500 mb-4 text-center">売上・ロスがリセットされ、未精算（棚卸し前）の状態に戻ります。</p>
-                                <div className="flex gap-2">
-                                    <button type="button" onClick={() => setCancelInventoryTarget(null)} disabled={isCancelling} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">閉じる</button>
-                                    <button type="button" onClick={handleCancelAgencyInventory} disabled={isCancelling} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl active:bg-red-600 flex justify-center items-center">{isCancelling ? <div className="spinner border-l-white w-4 h-4"></div> : '取り消す'}</button>
-                                </div>
+                            <span className="text-[10px] font-bold">注文対応</span>
+                        </button>
+                        <button type="button" onClick={() => setActiveTab('inventory')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'inventory' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
+                            <Icons.Box className="w-6 h-6" />
+                            <span className="text-[10px] font-bold">在庫・販売</span>
+                        </button>
+                        <button type="button" onClick={() => setActiveTab('agency')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'agency' ? 'text-agency' : 'text-gray-400'}`}>
+                            <div className="relative">
+                                <Icons.Store className="w-6 h-6" />
+                                {agencyDeliveries.filter(d => d.status === "納品済").length > 0 && (
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-agency rounded-full border-2 border-white"></div>
+                                )}
                             </div>
-                        </div>
-                    )}
+                            <span className="text-[10px] font-bold">委託(卸し)</span>
+                        </button>
+                        <button type="button" onClick={() => setActiveTab('analytics')} className={`flex-1 flex flex-col items-center justify-center gap-1 ${activeTab === 'analytics' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
+                            <Icons.TrendingUp className="w-6 h-6" />
+                            <span className="text-[10px] font-bold">分析</span>
+                        </button>
+                    </div>
 
-                    {inventoryModal && (
-                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in no-print">
+                    {showBulkLossModal && (
                             <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
                                 <div className="mb-4">
                                     <h3 className="text-lg font-bold text-gray-900 mb-1">棚卸し入力</h3>
