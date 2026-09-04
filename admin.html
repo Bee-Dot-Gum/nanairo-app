@@ -8,15 +8,10 @@
     <link rel="apple-touch-icon" href="https://i.imgur.com/tqZC8OZ.png">
     <link rel="icon" type="image/png" href="https://i.imgur.com/tqZC8OZ.png">
     
-    <!-- React & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- ★真っ白クラッシュの原因となっていた Recharts の読み込みを完全削除しました！ ★ -->
 
     <script>
         tailwind.config = {
@@ -32,9 +27,10 @@
             }
         }
     </script>
+    
     <style>
         ::-webkit-scrollbar { display: none; }
-        body { background-color: #f3f4f6; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         .app-container { max-width: 600px; margin: 0 auto; background-color: #f3f4f6; min-height: 100vh; position: relative; display: flex; flex-direction: column; }
         .spinner { border: 3px solid rgba(255,255,255,0.3); border-left-color: #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         .spinner-dark { border-color: rgba(0,0,0,0.1); border-left-color: #16a34a; }
@@ -55,15 +51,22 @@
             .no-print { display: none !important; }
             .page-break { page-break-after: always; margin-bottom: 0 !important; border: none !important; }
             .app-container { max-width: 100%; background-color: white; box-shadow: none; }
+            
+            .receipt-print {
+                width: 100%; max-width: 80mm; margin: 0 auto;
+                font-family: 'Helvetica Neue', monospace, sans-serif; color: #000;
+            }
+            .receipt-print * { visibility: visible; }
         }
     </style>
 </head>
 <body>
     <div id="root"></div>
+    
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
-        
-        // 全てのアイコンを網羅
+
+        // すべてのアイコンを完全に定義（エラー防止）
         const Icons = {
             Plus: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
             Minus: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/></svg>,
@@ -82,11 +85,12 @@
             X: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
             Award: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>,
             History: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>,
-            Wifi: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
             Truck: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v11"/><path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>,
             Store: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12v0a2 2 0 0 1-2-2V7"/></svg>,
             XCircle: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>,
-            PieChartIcon: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            BarChart: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>,
+            PieChart: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>,
+            Activity: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         };
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
@@ -99,7 +103,7 @@
         };
 
         function App() {
-            // ★印刷ハブを外し、スッキリ4タブ構成へ
+            // アクティブタブ (orders, inventory, agency, analytics) ※hub(印刷)は非表示
             const [activeTab, setActiveTab] = useState('orders'); 
             
             // データ群
@@ -121,7 +125,7 @@
                 setTimeout(() => setMessage(''), duration);
             };
 
-            // 在庫・販売用
+            // 在庫手動調整用
             const [selectedProductId, setSelectedProductId] = useState('');
             const [type, setType] = useState('add'); 
             const [amount, setAmount] = useState(1);
@@ -148,6 +152,7 @@
             const [showAllCustomersModal, setShowAllCustomersModal] = useState(false);
             const [searchCustomer, setSearchCustomer] = useState("");
             const [showCustomerModal, setShowCustomerModal] = useState(null); 
+            const [chartType, setChartType] = useState('line');
 
             // 印刷・月次請求書用
             const [printOrders, setPrintOrders] = useState([]); 
@@ -293,9 +298,7 @@
                 setPrintOrders(printableOrders); setPrintType(type);
             };
 
-            const executePrint = async () => {
-                window.print();
-            };
+            const executePrint = async () => { window.print(); };
 
             const updateDeliveryCart = (productId, delta) => {
                 setDeliveryCart(prev => {
@@ -388,6 +391,15 @@
                 } catch(e) { showMessage("通信エラーが発生しました。"); }
                 finally { setIsCancelling(false); setCancelInventoryTarget(null); }
             };
+
+            if (isLoadingData) {
+                return (
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-500">
+                        <div className="spinner spinner-dark mb-4"></div>
+                        <p className="font-bold">最新データを同期中...</p>
+                    </div>
+                );
+            }
 
             const renderPrintView = () => {
                 if(printOrders.length === 0) return null;
@@ -574,4 +586,780 @@
                                 <button type="button" onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100"><Icons.RefreshCw className={`w-5 h-5 ${isFetchingData ? 'animate-spin' : ''}`} /></button>
                             </div>
                             <div className="flex gap-2">
-                                <button type="
+                                <button type="button" onClick={() => openBulkPrintPreview('invoice')} className="flex-1 bg-white border border-gray-300 rounded-lg py-2 text-sm font-bold text-gray-700 shadow-sm active:bg-gray-50 flex justify-center items-center gap-2"><Icons.FileText className="w-4 h-4 text-blue-500"/> 納品書 一括出力</button>
+                                <button type="button" onClick={() => openBulkPrintPreview('receipt')} className="flex-1 bg-white border border-gray-300 rounded-lg py-2 text-sm font-bold text-gray-700 shadow-sm active:bg-gray-50 flex justify-center items-center gap-2"><Icons.FileText className="w-4 h-4 text-green-500"/> 領収書 一括出力</button>
+                            </div>
+                        </div>
+
+                        {isCurrentMonth && (
+                            <>
+                                <div className="flex justify-between items-end border-l-4 border-nanairo-dark pl-2">
+                                    <h1 className="text-xl font-bold text-gray-800">注文対応</h1>
+                                    <span className="text-sm font-bold text-nanairo-dark bg-nanairo-light px-2 py-1 rounded">未対応: {activeOrders.filter(o=>o.status==='未対応').length}件</span>
+                                </div>
+                                <div className="space-y-4">
+                                    {activeOrders.map(order => (
+                                        <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative">
+                                            <div className={`px-4 py-2 flex justify-between items-center text-white font-bold text-sm ${order.status === '未対応' ? 'bg-red-500' : 'bg-nanairo-dark'}`}>
+                                                <div className="flex items-center gap-1">{order.status === '未対応' ? <Icons.Clock className="w-4 h-4"/> : <Icons.Check className="w-4 h-4"/>}{order.status}</div>
+                                                <span className="text-xs font-normal opacity-90">注文: {order.orderDate}</span>
+                                            </div>
+                                            <div className="p-4">
+                                                <div className="flex justify-between items-start mb-3 border-b border-gray-100 pb-3">
+                                                    <div>
+                                                        <div className="font-bold text-gray-800 text-lg flex items-center gap-2">{order.userName} 様</div>
+                                                        <div className="text-sm text-nanairo-dark font-bold mt-1 flex items-center gap-1"><Icons.ShoppingBag className="w-4 h-4"/> 受取: {order.pickupDate} {order.pickupTime}</div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="text-sm text-gray-500 mb-0.5">合計金額</div>
+                                                        <div className="font-bold text-xl text-gray-900">¥{Number(order.totalPrice || 0).toLocaleString()}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="mb-4">
+                                                    <div className="text-xs text-gray-500 font-bold mb-2">ご注文内容:</div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {order.itemsList && order.itemsList.map((item, idx) => (
+                                                            <span key={idx} className="bg-green-50 text-green-800 border border-green-200 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-sm">{item.name} <span className="text-green-600 ml-1">×{item.qty}</span></span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                {order.memo && order.memo !== "なし" && (
+                                                    <div className="bg-yellow-50 border border-yellow-200 p-2.5 rounded-lg mb-4 text-xs text-yellow-800 flex gap-1.5 items-start"><Icons.ClipboardList className="w-4 h-4 shrink-0 mt-0.5"/><span>{order.memo}</span></div>
+                                                )}
+                                                <div className="flex gap-2 mt-3 mb-1">
+                                                    <button type="button" onClick={() => toggleCheck(order.id, 'senmu', !order.senmuChecked)} className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border transition-colors ${order.senmuChecked ? 'bg-blue-50 text-blue-600 border-blue-200 shadow-inner' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center border ${order.senmuChecked ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-white'}`}>{order.senmuChecked && <Icons.Check className="w-3 h-3" />}</div>専務確認
+                                                    </button>
+                                                    <button type="button" onClick={() => toggleCheck(order.id, 'cafe', !order.cafeChecked)} className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border transition-colors ${order.cafeChecked ? 'bg-orange-50 text-orange-600 border-orange-200 shadow-inner' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center border ${order.cafeChecked ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-300 bg-white'}`}>{order.cafeChecked && <Icons.Check className="w-3 h-3" />}</div>カフェ確認
+                                                    </button>
+                                                </div>
+                                                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                                                    <div className="flex gap-1 flex-1">
+                                                        <button type="button" onClick={() => openPrintPreview(order, 'invoice')} className="flex-1 bg-gray-50 border border-gray-200 rounded-lg text-[11px] font-bold text-gray-600 active:bg-gray-100 flex items-center justify-center gap-1 h-10 shadow-sm"><Icons.FileText className="w-3.5 h-3.5"/>納品書</button>
+                                                        <button type="button" onClick={() => openPrintPreview(order, 'receipt')} className="flex-1 bg-gray-50 border border-gray-200 rounded-lg text-[11px] font-bold text-gray-600 active:bg-gray-100 flex items-center justify-center gap-1 h-10 shadow-sm"><Icons.FileText className="w-3.5 h-3.5"/>領収書</button>
+                                                    </div>
+                                                    <button type="button" onClick={() => toggleOrderStatus(order.id, order.status)} className={`flex-[1.5] h-10 rounded-lg font-bold text-sm transition-colors shadow-sm ${order.status === '未対応' ? 'bg-nanairo-light text-nanairo-dark border border-nanairo hover:bg-green-100' : 'bg-gray-800 text-white hover:bg-gray-900'}`}>{order.status === '未対応' ? '準備完了にする' : '受渡済にする'}</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {activeOrders.length === 0 && <div className="text-center py-10 bg-white rounded-xl border border-gray-200 text-gray-500">現在、未対応の注文はありません。</div>}
+                                </div>
+                            </>
+                        )}
+                        <div className={isCurrentMonth ? "pt-4 border-t border-gray-200" : ""}>
+                            <button type="button" onClick={() => setIsPastOrdersOpen(!isPastOrdersOpen)} className="w-full flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm active:bg-gray-100 mb-2">
+                                <h3 className="font-bold text-gray-600 text-sm flex items-center gap-2"><Icons.ClipboardList className="w-4 h-4" /> 処理済・キャンセル ({pastOrders.length}件)</h3>
+                                <span className="text-gray-400 font-bold text-xs">{isPastOrdersOpen ? '閉じる ▲' : '一覧を見る ▼'}</span>
+                            </button>
+                            {isPastOrdersOpen && (
+                                pastOrders.length === 0 ? <div className="text-center py-10 bg-gray-50 rounded-xl text-gray-500 text-sm border border-gray-200">指定した期間の履歴はありません。</div> : (
+                                    <div className="space-y-2 mt-2">
+                                        {pastOrders.map(order => {
+                                            const isCancelled = order.status === 'キャンセル';
+                                            return (
+                                                <div key={order.id} className={`bg-white border p-3 rounded-lg shadow-sm ${isCancelled ? 'border-gray-300 opacity-60' : 'border-gray-200'}`}>
+                                                    <div className="flex justify-between items-center opacity-80 mb-2">
+                                                        <div>
+                                                            <div className="font-bold text-gray-700 text-sm mb-1 flex items-center gap-1">{isCancelled && <Icons.XCircle className="w-4 h-4 text-red-500" />}{order.userName} 様 <span className="text-xs font-normal text-gray-400 ml-1">({order.orderDate})</span></div>
+                                                            <div className="text-xs text-gray-500 mb-1.5">{order.itemsList && order.itemsList.map(i => `${i.name}×${i.qty}`).join(', ')}</div>
+                                                            <div className="flex gap-1">{order.senmuChecked && <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded font-bold">専務確認済</span>}{order.cafeChecked && <span className="text-[9px] bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded font-bold">カフェ確認済</span>}</div>
+                                                        </div>
+                                                        <div className="text-right flex flex-col items-end gap-1">
+                                                            <div className={`font-bold text-sm ${isCancelled ? 'text-gray-500 line-through' : 'text-gray-800'}`}>¥{Number(order.totalPrice || 0).toLocaleString()}</div>
+                                                            {!isCancelled && <button type="button" onClick={() => toggleOrderStatus(order.id, order.status)} className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border active:bg-gray-200 mt-1">戻す</button>}
+                                                            {isCancelled && <span className="text-[10px] font-bold text-red-500 border border-red-200 bg-red-50 px-2 rounded">キャンセル済</span>}
+                                                        </div>
+                                                    </div>
+                                                    {!isCancelled && (
+                                                        <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-gray-100">
+                                                            <button type="button" onClick={() => openPrintPreview(order, 'invoice')} className="text-[10px] font-bold text-gray-500 border border-gray-300 bg-white px-2 py-1 rounded flex items-center gap-1 active:bg-gray-50"><Icons.FileText className="w-3.5 h-3.5"/>納品書</button>
+                                                            <button type="button" onClick={() => openPrintPreview(order, 'receipt')} className="text-[10px] font-bold text-gray-500 border border-gray-300 bg-white px-2 py-1 rounded flex items-center gap-1 active:bg-gray-50"><Icons.FileText className="w-3.5 h-3.5"/>領収書</button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                )
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderInventoryTab = () => (
+                <div className="animate-slide-up space-y-6 relative z-10">
+                    <div className="flex justify-between items-end border-l-4 border-nanairo-dark pl-2">
+                        <h1 className="text-xl font-bold text-gray-800">在庫・店頭販売</h1>
+                        <button type="button" onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100"><Icons.RefreshCw className={`w-5 h-5 ${isFetchingData ? 'animate-spin' : ''}`} /></button>
+                    </div>
+
+                    <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50 border-b border-gray-200">
+                                <tr><th className="px-3 py-3 font-bold text-gray-600">商品名</th><th className="px-2 py-3 font-bold text-gray-600 text-center">在庫</th><th className="px-3 py-3 font-bold text-gray-600 text-right">調整</th></tr>
+                            </thead>
+                            <tbody>
+                                {products.map(p => (
+                                    <tr key={p.id} className="border-b border-gray-100 last:border-0">
+                                        <td className="px-3 py-3 font-bold text-gray-800 whitespace-nowrap">{p.name}{p.weight && <span className="block text-[10px] text-gray-500 font-normal">{p.weight}</span>}</td>
+                                        <td className="px-2 py-3 text-center"><span className={`font-bold px-2 py-1 rounded-md text-xs ${p.stock <= 5 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700'}`}>{p.stock} P</span></td>
+                                        <td className="px-3 py-3 text-right">
+                                            <div className="flex justify-end gap-1 flex-wrap w-full">
+                                                <button type="button" onClick={() => handleActionClick(p.id, 'add')} className="bg-nanairo-dark text-white px-2 py-1.5 rounded text-[10px] font-bold active:bg-green-700">収穫</button>
+                                                <button type="button" onClick={() => handleActionClick(p.id, 'sale')} className="bg-blue-500 text-white px-2 py-1.5 rounded text-[10px] font-bold active:bg-blue-600">販売</button>
+                                                <button type="button" onClick={() => handleActionClick(p.id, 'remove')} className="bg-red-500 text-white px-2 py-1.5 rounded text-[10px] font-bold active:bg-red-600">ロス</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </section>
+
+                    <button type="button" onClick={() => setShowBulkLossModal(true)} className="w-full bg-red-50 text-red-600 border border-red-200 rounded-xl py-3 font-bold text-sm mb-6 active:bg-red-100 flex justify-center items-center gap-2 shadow-sm">
+                        <Icons.AlertTriangle className="w-4 h-4"/> 現在の全在庫を一括でロス (破棄) する
+                    </button>
+
+                    <section id="manual-input-form" className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                        <h2 className="font-bold text-gray-800 mb-4 text-base">手動入力フォーム</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">商品を選択</label>
+                                <select value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)} className="w-full border border-gray-300 rounded-lg p-3 text-sm bg-gray-50 focus:ring-2 focus:ring-nanairo-dark outline-none"><option value="">選択してください</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">区分</label>
+                                <div className="flex items-center bg-gray-100 border border-gray-200 rounded-xl h-11 p-1 relative cursor-pointer select-none">
+                                    <div onClick={() => setType('add')} className={`w-1/3 h-full rounded-lg flex items-center justify-center text-xs font-bold z-10 transition-colors ${type === 'add' ? 'text-white' : 'text-gray-500'}`}>収穫 (追加)</div>
+                                    <div onClick={() => setType('sale')} className={`w-1/3 h-full rounded-lg flex items-center justify-center text-xs font-bold z-10 transition-colors ${type === 'sale' ? 'text-white' : 'text-gray-500'}`}>店頭販売</div>
+                                    <div onClick={() => setType('remove')} className={`w-1/3 h-full rounded-lg flex items-center justify-center text-xs font-bold z-10 transition-colors ${type === 'remove' ? 'text-white' : 'text-gray-500'}`}>ロス (破棄)</div>
+                                    <div className={`absolute top-1 bottom-1 w-[calc(33.333%-4px)] rounded-lg shadow-sm transition-transform duration-300 ${type === 'add' ? 'bg-nanairo-dark left-1 translate-x-0' : type === 'sale' ? 'bg-blue-500 left-1 translate-x-full' : 'bg-red-500 left-1 translate-x-[200%]'}`}></div>
+                                </div>
+                            </div>
+                            <div className="w-24">
+                                <label className="block text-xs font-bold text-gray-500 mb-1">数量</label>
+                                <div className="flex items-center border border-gray-300 rounded-xl bg-gray-50 h-11 overflow-hidden">
+                                    <button type="button" onClick={() => setAmount(Math.max(1, amount - 1))} className="w-8 h-full flex justify-center items-center text-gray-600 bg-gray-100"><Icons.Minus className="w-3 h-3" /></button>
+                                    <div className="flex-1 text-center font-bold text-sm">{amount}</div>
+                                    <button type="button" onClick={() => setAmount(amount + 1)} className="w-8 h-full flex justify-center items-center text-gray-600 bg-gray-100"><Icons.Plus className="w-3 h-3" /></button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">メモ (オプション)</label>
+                                <textarea value={stockMemo} onChange={e => setStockMemo(e.target.value)} placeholder="例：鮮度落ち、店頭での現金販売など" className="w-full border border-gray-300 rounded-lg p-3 text-sm bg-gray-50 h-16 resize-none focus:ring-2 focus:ring-nanairo-dark outline-none"></textarea>
+                            </div>
+                            <button type="button" onClick={handleSubmitStock} disabled={isSubmitting || !selectedProductId} className={`w-full py-3.5 rounded-xl font-bold shadow-md transition-colors flex justify-center items-center gap-2 mt-2 ${(!selectedProductId || isSubmitting) ? 'bg-gray-300 text-gray-500' : type === 'add' ? 'bg-nanairo-dark text-white' : type === 'sale' ? 'bg-blue-600 text-white' : 'bg-red-500 text-white'}`}>
+                                {isSubmitting ? <><div className="spinner"></div> 登録中...</> : '入力'}
+                            </button>
+                        </div>
+                    </section>
+
+                    <section className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+                        <h2 className="font-bold text-gray-800 mb-3 text-sm flex items-center gap-2"><Icons.History className="w-4 h-4 text-gray-500" /> 最近の調整履歴</h2>
+                        <div className="space-y-2">
+                            {stockLogs.length === 0 ? <p className="text-xs text-gray-500 text-center py-4">履歴はありません</p> : (
+                                stockLogs.map((log) => {
+                                    const isCancelled = log.status === '取消';
+                                    const typeColor = log.type === '収穫' ? 'text-green-600 bg-green-50' : log.type === '店頭販売' ? 'text-blue-600 bg-blue-50' : 'text-red-600 bg-red-50';
+                                    return (
+                                        <div key={log.rowIndex} className={`border rounded-lg p-2.5 flex items-center justify-between shadow-sm transition-opacity ${isCancelled ? 'border-gray-200 opacity-50 bg-gray-50' : 'border-gray-200 bg-white'}`}>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isCancelled ? 'bg-gray-200 text-gray-500' : typeColor}`}>{log.type}</span>
+                                                    <span className="text-xs font-bold text-gray-800">{log.name}</span><span className="text-xs font-bold text-gray-600">{log.amount}P</span>
+                                                </div>
+                                                <div className="text-[10px] text-gray-500">{log.date} {log.memo && `- ${log.memo}`}</div>
+                                            </div>
+                                            {!isCancelled && <button type="button" onClick={() => setCancelTargetLog(log)} className="text-[10px] font-bold text-red-500 bg-white border border-red-200 px-2 py-1.5 rounded shadow-sm active:bg-red-50">取消</button>}
+                                            {isCancelled && <span className="text-[10px] font-bold text-gray-500">取消済</span>}
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                    </section>
+                </div>
+            );
+
+            const renderAgencyTab = () => {
+                const pendingDeliveries = agencyDeliveries.filter(d => d.status === "納品済");
+                const completedDeliveries = agencyDeliveries.filter(d => d.status === "精算済");
+
+                return (
+                    <div className="animate-slide-up space-y-6 relative z-10">
+                        <div className="flex justify-between items-end border-l-4 border-agency pl-2">
+                            <h1 className="text-xl font-bold text-gray-800">委託(卸し)販売</h1>
+                            <button type="button" onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100"><Icons.RefreshCw className={`w-5 h-5 ${isFetchingData ? 'animate-spin' : ''}`} /></button>
+                        </div>
+                        <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                            <h2 className="font-bold text-agency-dark text-base flex items-center gap-2 mb-4"><Icons.Truck className="w-5 h-5"/> 新規納品・納品書発行</h2>
+                            <div className="space-y-4">
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <div className="w-full sm:flex-[2]">
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">委託先を選ぶ</label>
+                                        <select value={selectedAgencyId} onChange={e => setSelectedAgencyId(e.target.value)} className="w-full border border-gray-300 rounded-lg p-3 text-sm bg-gray-50 focus:ring-2 focus:ring-agency outline-none font-bold"><option value="">店舗を選択</option>{agencies.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+                                    </div>
+                                    <div className="w-full sm:flex-[1]">
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">納品日</label>
+                                        <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className="w-full border border-gray-300 rounded-lg p-3 text-sm bg-white focus:ring-2 focus:ring-agency outline-none font-bold" />
+                                    </div>
+                                </div>
+                                {selectedAgencyId && (
+                                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                                        <p className="text-xs font-bold text-gray-500 mb-2">納品する商品と数</p>
+                                        <div className="space-y-2">
+                                            {products.map(p => {
+                                                const ap = agencyPrices.find(pr => pr.agencyId === selectedAgencyId && pr.productId === p.id);
+                                                const storePrice = ap ? ap.storePrice : "未設定"; const qty = deliveryCart[p.id] || 0;
+                                                return (
+                                                    <div key={p.id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
+                                                        <div className="flex-1 min-w-0 pr-2">
+                                                            <div className="font-bold text-gray-800 text-sm truncate">{p.name}</div>
+                                                            <div className="text-[10px] text-gray-500 truncate">店頭税込: {storePrice}円 / 在庫: {p.stock}</div>
+                                                        </div>
+                                                        <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden h-10 shrink-0">
+                                                            <button type="button" onClick={() => updateDeliveryCart(p.id, -1)} className="w-10 h-full bg-gray-100 flex items-center justify-center text-gray-600 active:bg-gray-200"><Icons.Minus className="w-4 h-4"/></button>
+                                                            <div className="w-10 text-center font-bold text-base bg-white pt-2">{qty}</div>
+                                                            <button type="button" onClick={() => updateDeliveryCart(p.id, 1)} disabled={qty >= p.stock} className={`w-10 h-full flex items-center justify-center ${qty >= p.stock ? 'bg-gray-50 text-gray-300' : 'bg-gray-100 text-gray-600 active:bg-gray-200'}`}><Icons.Plus className="w-4 h-4"/></button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                                <button type="button" onClick={handleAgencyDelivery} disabled={!selectedAgencyId || Object.keys(deliveryCart).length === 0 || isSubmittingDelivery} className={`w-full py-4 rounded-xl font-bold text-base shadow-sm transition-colors flex justify-center items-center gap-2 mt-4 ${(!selectedAgencyId || Object.keys(deliveryCart).length === 0 || isSubmittingDelivery) ? 'bg-gray-300 text-gray-500' : 'bg-agency text-white active:bg-orange-600'}`}>
+                                    {isSubmittingDelivery ? <><div className="spinner"></div> 処理中...</> : <><Icons.FileText className="w-5 h-5"/> 納品して納品書を発行</>}
+                                </button>
+                            </div>
+                        </section>
+
+                        <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                            <h2 className="font-bold text-gray-800 mb-4 text-base flex items-center gap-2"><Icons.Store className="w-5 h-5 text-agency-dark"/> 棚卸し・売上回収 (未精算)</h2>
+                            <p className="text-[10px] text-gray-500 mb-3">店舗に赴き、売れた数と回収した数(ロス)を入力して精算を確定させます。</p>
+                            <div className="space-y-3">
+                                {pendingDeliveries.length === 0 ? <p className="text-sm text-gray-400 text-center py-4 bg-gray-50 rounded-lg">未精算の納品はありません。</p> : (
+                                    pendingDeliveries.map(d => (
+                                        <div key={d.id} className="border border-agency/30 bg-orange-50/50 p-3 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 relative">
+                                            <div className="pr-6 w-full">
+                                                <span className="text-[10px] font-bold text-agency-dark bg-orange-100 px-1.5 py-0.5 rounded">{d.agencyName}</span>
+                                                <div className="font-bold text-gray-800 text-sm mt-1.5">{d.productName}</div>
+                                                <div className="text-xs text-gray-600 mt-0.5">納品数: <span className="font-bold text-base">{d.deliveryQty} P</span> <span className="text-[10px] text-gray-400 ml-1">({d.date})</span></div>
+                                            </div>
+                                            <button onClick={() => { setInventoryModal(d); setInvSalesQty(d.deliveryQty); setInvLossQty(0); }} className="bg-agency text-white text-xs font-bold px-4 py-2.5 rounded-lg active:bg-agency-dark shadow-sm w-full sm:w-auto shrink-0">棚卸し入力</button>
+                                            <button onClick={() => setCancelDeliveryTarget(d)} className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 bg-white rounded-full shadow-sm active:bg-gray-100"><Icons.X className="w-3.5 h-3.5" /></button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </section>
+
+                        <section className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+                            <h3 className="font-bold text-gray-700 text-sm mb-3">最近の精算履歴</h3>
+                            <div className="space-y-2">
+                                {completedDeliveries.slice(0, 10).map(d => (
+                                    <div key={d.id} className="text-xs flex justify-between items-center border-b border-gray-100 pb-2 last:border-0 last:pb-0 relative">
+                                        <div className="flex-1 min-w-0 pr-2">
+                                            <span className="font-bold text-gray-700">{d.agencyName}</span><span className="text-gray-500 ml-1">{d.productName}</span>
+                                            <div className="text-[9px] text-gray-400 mt-0.5">納品:{d.deliveryQty} 売上:{d.salesQty} ロス:{d.lossQty} ({d.date})</div>
+                                        </div>
+                                        <div className="text-right flex items-center gap-2 shrink-0">
+                                            <div className="font-bold text-agency-dark">¥{(Number(d.pureSalesExTax || 0) * 1.08).toLocaleString()} <span className="text-[9px] font-normal text-gray-500">(込)</span></div>
+                                            <button onClick={() => setCancelInventoryTarget(d)} className="bg-white border border-gray-200 text-gray-400 hover:text-red-500 p-1.5 rounded active:bg-gray-50 shadow-sm"><Icons.X className="w-3 h-3" /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {completedDeliveries.length === 0 && <p className="text-xs text-gray-400">履歴なし</p>}
+                            </div>
+                        </section>
+                    </div>
+                );
+            };
+
+            const renderAnalyticsTab = () => {
+                const formatMonth = (m) => m ? m.replace('-', '年') + '月' : '';
+                const isSingleMonth = viewStartMonth === viewEndMonth;
+                const periodText = isSingleMonth ? formatMonth(viewStartMonth) : `${formatMonth(viewStartMonth)} 〜 ${formatMonth(viewEndMonth)}`;
+
+                const anData = analytics || {};
+                const topProducts = anData.topProducts || [];
+                const topCustomers = anData.topCustomers || [];
+                const stockStats = anData.stockStats || [];
+
+                // 外部ライブラリを使わない、絶対にクラッシュしない独自データ生成ロジック
+                let directTotal = 0; let agencyTotal = 0;
+                orders.forEach(o => {
+                    if(o.status !== 'キャンセル' && o.pickupDate && String(o.pickupDate) >= `${viewStartMonth}-01` && String(o.pickupDate) <= `${viewEndMonth}-31`) directTotal += Number(o.totalPrice || 0);
+                });
+                agencyDeliveries.forEach(d => {
+                    if(d.status === '精算済' && d.date && String(d.date) >= `${viewStartMonth}-01` && String(d.date) <= `${viewEndMonth}-31`) agencyTotal += Math.floor(Number(d.pureSalesExTax || 0) * 1.08);
+                });
+                const totalCombinedSales = directTotal + agencyTotal;
+                const directRatio = totalCombinedSales > 0 ? (directTotal / totalCombinedSales) * 100 : 0;
+                const agencyRatio = totalCombinedSales > 0 ? (agencyTotal / totalCombinedSales) * 100 : 0;
+
+                // 日別データの集計
+                const daysMap = {};
+                orders.forEach(o => {
+                    if(o.status === 'キャンセル' || !o.pickupDate) return;
+                    const pDate = String(o.pickupDate);
+                    if(pDate >= `${viewStartMonth}-01` && pDate <= `${viewEndMonth}-31`) {
+                        if(!daysMap[pDate]) daysMap[pDate] = { date: pDate, direct: 0, agency: 0 };
+                        daysMap[pDate].direct += Number(o.totalPrice || 0);
+                    }
+                });
+                agencyDeliveries.forEach(d => {
+                    if(d.status !== '精算済' || !d.date) return;
+                    const dDate = String(d.date);
+                    if(dDate >= `${viewStartMonth}-01` && dDate <= `${viewEndMonth}-31`) {
+                        if(!daysMap[dDate]) daysMap[dDate] = { date: dDate, direct: 0, agency: 0 };
+                        daysMap[dDate].agency += Math.floor(Number(d.pureSalesExTax || 0) * 1.08);
+                    }
+                });
+                const dailyData = Object.values(daysMap).sort((a, b) => a.date.localeCompare(b.date));
+                const maxDailySales = dailyData.length > 0 ? Math.max(...dailyData.map(d => d.direct + d.agency)) : 1;
+
+                return (
+                    <div className="animate-slide-up space-y-5 relative z-10">
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="flex flex-wrap items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm w-fit">
+                                <Icons.Calendar className="w-4 h-4 text-gray-500" />
+                                <input type="month" value={viewStartMonth} onChange={(e) => setViewStartMonth(e.target.value)} className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24" />
+                                <span className="text-gray-400 font-bold">〜</span>
+                                <input type="month" value={viewEndMonth} onChange={(e) => setViewEndMonth(e.target.value)} className="bg-transparent font-bold text-gray-700 outline-none text-sm cursor-pointer w-24" />
+                            </div>
+                            <button type="button" onClick={handleRefresh} disabled={isFetchingData} className="p-2 bg-white rounded-full shadow-sm text-gray-500 active:bg-gray-100">
+                                <Icons.RefreshCw className={`w-5 h-5 ${isFetchingData ? 'animate-spin' : ''}`} />
+                            </button>
+                        </div>
+
+                        <div className="flex justify-between items-end border-l-4 border-blue-600 pl-2">
+                            <h1 className="text-xl font-bold text-gray-800">ダッシュボード</h1>
+                            <span className="text-xs font-bold text-gray-500">{periodText}</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3 relative">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.TrendingUp className="w-3 h-3"/> 指定期間の総売上</div>
+                                <div className="text-2xl font-bold text-gray-900 tracking-tight">¥{Number(anData.monthlySales || 0).toLocaleString()}</div>
+                                <div className="text-[9px] text-gray-400 mt-1">※店頭販売・委託販売含む</div>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.ClipboardList className="w-3 h-3"/> 注文・販売件数</div>
+                                <div className="text-2xl font-bold text-gray-900 tracking-tight">{Number(anData.orderCount || 0)} <span className="text-sm font-normal text-gray-500">件</span></div>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                                <div className="text-xs text-gray-500 font-bold mb-1 flex items-center gap-1"><Icons.User className="w-3 h-3"/> 平均客単価</div>
+                                <div className="text-xl font-bold text-gray-900 tracking-tight">¥{Number(anData.averageSpend || 0).toLocaleString()}</div>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-red-100 bg-red-50/30">
+                                <div className="text-xs text-red-600 font-bold mb-1 flex items-center gap-1"><Icons.AlertTriangle className="w-3 h-3"/> 推定ロス金額</div>
+                                <div className="text-xl font-bold text-red-700 tracking-tight">¥{Number(anData.lossAmount || 0).toLocaleString()}</div>
+                            </div>
+                        </div>
+
+                        {/* 安全なCSSベースのグラフセクション（クラッシュしない） */}
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                                <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">売上構成と推移</h3>
+                                <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                                    <button onClick={() => setChartType('line')} className={`p-1.5 rounded-md transition-colors ${chartType==='line'?'bg-white shadow-sm text-blue-600':'text-gray-400 hover:text-gray-600'}`} title="日別推移"><Icons.Activity className="w-4 h-4"/></button>
+                                    <button onClick={() => setChartType('pie_ratio')} className={`p-1.5 rounded-md transition-colors ${chartType==='pie_ratio'?'bg-white shadow-sm text-blue-600':'text-gray-400 hover:text-gray-600'}`} title="直販・委託比率"><Icons.PieChart className="w-4 h-4"/></button>
+                                    <button onClick={() => setChartType('pie_product')} className={`p-1.5 rounded-md transition-colors ${chartType==='pie_product'?'bg-white shadow-sm text-blue-600':'text-gray-400 hover:text-gray-600'}`} title="商品売上"><Icons.BarChart className="w-4 h-4"/></button>
+                                </div>
+                            </div>
+                            
+                            <div className="w-full relative min-h-[220px]">
+                                {chartType === 'line' ? (
+                                    dailyData.length > 0 ? (
+                                        <div>
+                                            <div className="flex items-center gap-4 justify-end mb-2 text-[10px] font-bold">
+                                                <div className="flex items-center gap-1"><div className="w-2 h-2 bg-nanairo-dark rounded-full"></div>直販・店頭</div>
+                                                <div className="flex items-center gap-1"><div className="w-2 h-2 bg-agency rounded-full"></div>委託販売</div>
+                                            </div>
+                                            <div className="h-40 flex items-end gap-1.5 overflow-x-auto w-full pb-1">
+                                                {dailyData.map(d => {
+                                                    const h1 = (d.direct / maxDailySales) * 100;
+                                                    const h2 = (d.agency / maxDailySales) * 100;
+                                                    return (
+                                                        <div key={d.date} className="flex flex-col items-center flex-1 min-w-[20px] max-w-[40px] group relative">
+                                                            <div className="w-full flex-1 flex flex-col justify-end bg-gray-50 rounded-t overflow-hidden relative">
+                                                                <div className="w-full bg-agency transition-all duration-500 ease-out" style={{height: `${h2}%`}}></div>
+                                                                <div className="w-full bg-nanairo-dark transition-all duration-500 ease-out" style={{height: `${h1}%`}}></div>
+                                                                <div className="absolute hidden group-hover:block bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-20">¥{(d.direct+d.agency).toLocaleString()}</div>
+                                                            </div>
+                                                            <span className="text-[9px] text-gray-400 mt-1 whitespace-nowrap">{d.date.split('/')[1] || d.date.split('-')[2]}日</span>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    ) : <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400">データがありません</div>
+                                ) : chartType === 'pie_ratio' ? (
+                                    totalCombinedSales > 0 ? (
+                                        <div className="flex flex-col items-center justify-center h-full pt-4">
+                                            <div className="w-full max-w-[240px] mb-6">
+                                                <div className="flex justify-between text-xs font-bold mb-2">
+                                                    <span className="text-nanairo-dark">直販・店頭 {Math.round(directRatio)}%</span>
+                                                    <span className="text-agency">委託販売 {Math.round(agencyRatio)}%</span>
+                                                </div>
+                                                <div className="h-4 w-full rounded-full overflow-hidden flex bg-gray-100 shadow-inner">
+                                                    <div className="bg-nanairo-dark h-full transition-all duration-1000 ease-out" style={{width: `${directRatio}%`}}></div>
+                                                    <div className="bg-agency h-full transition-all duration-1000 ease-out" style={{width: `${agencyRatio}%`}}></div>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-6 text-sm font-bold">
+                                                <div className="text-center"><div className="text-[10px] text-gray-500 mb-0.5">直販・店頭 売上</div><div className="text-gray-800">¥{directTotal.toLocaleString()}</div></div>
+                                                <div className="text-center"><div className="text-[10px] text-gray-500 mb-0.5">委託販売 純売上</div><div className="text-gray-800">¥{agencyTotal.toLocaleString()}</div></div>
+                                            </div>
+                                        </div>
+                                    ) : <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400">データがありません</div>
+                                ) : chartType === 'pie_product' ? (
+                                    topProducts.length > 0 ? (
+                                        <div className="space-y-3 pt-2">
+                                            {topProducts.slice(0, 5).map((p, idx) => {
+                                                const maxQty = topProducts[0]?.qty || 1;
+                                                const percent = Math.max(5, Math.round((p.qty / maxQty) * 100));
+                                                const colors = ['bg-blue-500', 'bg-blue-400', 'bg-blue-300', 'bg-gray-400', 'bg-gray-300'];
+                                                return (
+                                                    <div key={p.name}>
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <div className="text-xs font-bold text-gray-800 flex items-center gap-1.5"><span className="text-gray-400">{idx + 1}.</span> {p.name}</div>
+                                                            <div className="text-xs font-bold text-gray-600">{p.qty} P</div>
+                                                        </div>
+                                                        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                                            <div className={`${colors[idx] || colors[4]} h-full transition-all duration-1000 ease-out`} style={{ width: `${percent}%` }}></div>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    ) : <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400">データがありません</div>
+                                ) : null}
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mt-5">
+                            <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2"><Icons.AlertTriangle className="w-4 h-4 text-orange-500"/> 商品別 ロス率</h3>
+                            <p className="text-[10px] text-gray-500 mb-3">指定期間内の「収穫量」に対する「破棄量」の割合です。</p>
+                            <div className="space-y-3">
+                                {stockStats && stockStats.length > 0 ? (
+                                    stockStats.map((stat, idx) => {
+                                        const barColor = stat.lossRate > 30 ? 'bg-red-500' : stat.lossRate > 10 ? 'bg-orange-400' : 'bg-green-500';
+                                        return (
+                                            <div key={idx}>
+                                                <div className="flex justify-between items-end mb-1">
+                                                    <div className="text-sm font-bold text-gray-800">{stat.name}</div>
+                                                    <div className="text-xs text-gray-600">
+                                                        <span className="font-bold text-red-600">{stat.lossRate}%</span> <span className="text-[10px]">(ロス{stat.lossQty} / 収穫{stat.harvestQty})</span>
+                                                    </div>
+                                                </div>
+                                                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                                    <div className={`${barColor} h-full transition-all duration-1000 ease-out`} style={{ width: `${stat.lossRate}%` }}></div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                                ) : (
+                                    <p className="text-sm text-gray-500 text-center py-4">データがありません</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-yellow-200">
+                            <h3 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2"><Icons.Award className="w-4 h-4 text-yellow-500"/> LINE優良顧客ランキング</h3>
+                            <p className="text-[10px] text-gray-500 mb-3">※店頭販売分はここには含まれません。リストをタップすると「購入カルテ・請求明細書」が開きます。</p>
+                            <div className="space-y-2">
+                                {topCustomers.length > 0 ? (
+                                    <>
+                                        {topCustomers.slice(0, 5).map((customer, idx) => (
+                                            <div key={customer.userId || idx} role="button" tabIndex={0} onClick={() => setShowCustomerModal(customer)} className="flex justify-between items-center bg-gray-50 p-2.5 rounded-lg border border-gray-100 cursor-pointer hover:bg-gray-100 active:bg-gray-200 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-yellow-400 text-yellow-900' : idx === 1 ? 'bg-gray-300 text-gray-800' : idx === 2 ? 'bg-orange-300 text-orange-900' : 'bg-gray-200 text-gray-600'}`}>{idx + 1}</div>
+                                                    <div><div className="font-bold text-sm text-gray-800">{customer.userName} 様</div><div className="text-[10px] text-gray-500">注文回数: {customer.orderCount}回</div></div>
+                                                </div>
+                                                <div className="font-bold text-nanairo-dark">¥{Number(customer.totalSpend || 0).toLocaleString()}</div>
+                                            </div>
+                                        ))}
+                                        {topCustomers.length > 5 && (
+                                            <button type="button" onClick={() => setShowAllCustomersModal(true)} className="w-full text-center text-xs font-bold text-yellow-600 py-2 bg-yellow-50 rounded-lg active:bg-yellow-100 mt-2">すべて見る ({topCustomers.length}件)</button>
+                                        )}
+                                    </>
+                                ) : <p className="text-sm text-gray-500 text-center py-4">データがありません</p>}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderCustomerModal = () => {
+                if (!showCustomerModal) return null;
+                const c = showCustomerModal;
+                return (
+                    <div className="fixed inset-0 z-[100] bg-black/50 flex flex-col justify-end items-center no-print">
+                        <div className="bg-white rounded-t-2xl w-full max-w-[600px] max-h-[80vh] flex flex-col animate-slide-up shadow-2xl">
+                            <div className="px-4 py-3 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-2xl z-10 shrink-0">
+                                <h2 className="font-bold text-base flex items-center gap-2"><Icons.User className="w-5 h-5" />購入カルテ</h2>
+                                <div className="flex items-center gap-2">
+                                    <button type="button" onClick={() => openMonthlyReportPreview(c)} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm active:bg-blue-700 flex items-center gap-1"><Icons.FileText className="w-3.5 h-3.5"/> 請求明細書を作成</button>
+                                    <button type="button" onClick={() => setShowCustomerModal(null)} className="p-1.5 bg-gray-100 rounded-full active:bg-gray-200"><Icons.X className="w-5 h-5" /></button>
+                                </div>
+                            </div>
+                            <div className="overflow-y-auto p-5 pb-10">
+                                <h3 className="text-xl font-bold text-gray-900 border-b-2 border-gray-800 inline-block pb-1 pr-4 mb-6">{c.userName} 様</h3>
+                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-100"><div className="text-xs font-bold text-blue-700 mb-1">期間内 累計購入額</div><div className="text-xl font-bold text-blue-900">¥{Number(c.totalSpend || 0).toLocaleString()}</div></div>
+                                    <div className="bg-green-50 p-3 rounded-lg border border-green-100"><div className="text-xs font-bold text-green-700 mb-1">期間内 注文回数</div><div className="text-xl font-bold text-green-900">{c.orderCount || 0} <span className="text-sm">回</span></div></div>
+                                </div>
+                                <h4 className="font-bold text-gray-700 text-sm mb-3 border-b border-gray-200 pb-2">商品別の購入内訳</h4>
+                                <ul className="space-y-2">
+                                    {c.items && Object.entries(c.items).sort((a,b)=>b[1]-a[1]).map(([itemName, qty]) => (
+                                        <li key={itemName} className="flex justify-between items-center p-2.5 bg-gray-50 rounded-lg border border-gray-100"><span className="font-bold text-sm text-gray-800">{itemName}</span><span className="font-bold text-gray-600 bg-white px-2 py-1 rounded shadow-sm text-xs">累計 {qty} P</span></li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            const renderAllProductsModal = () => {
+                if (!showAllProductsModal) return null;
+                const topProducts = analytics?.topProducts || [];
+                const maxQty = topProducts.length > 0 ? topProducts[0].qty : 1;
+                return (
+                    <div className="fixed inset-0 z-[100] bg-black/50 flex flex-col justify-end items-center no-print">
+                        <div className="bg-white rounded-t-2xl w-full max-w-[600px] max-h-[80vh] flex flex-col animate-slide-up shadow-2xl">
+                            <div className="px-4 py-3 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-2xl z-10 shrink-0">
+                                <h2 className="font-bold text-base flex items-center gap-2"><Icons.ShoppingBag className="w-5 h-5 text-blue-500" />商品ランキング全件</h2>
+                                <button type="button" onClick={() => setShowAllProductsModal(false)} className="p-1.5 bg-gray-100 rounded-full active:bg-gray-200"><Icons.X className="w-5 h-5" /></button>
+                            </div>
+                            <div className="overflow-y-auto p-5 pb-10 space-y-4">
+                                {topProducts.map((p, idx) => {
+                                    const percent = Math.max(5, Math.round((p.qty / maxQty) * 100));
+                                    return (
+                                        <div key={p.name}>
+                                            <div className="flex justify-between items-center mb-1"><div className="text-sm font-bold text-gray-800 flex items-center gap-2"><span className="text-gray-400">{idx + 1}.</span> {p.name}</div><div className="text-sm font-bold text-gray-600">{p.qty} P</div></div>
+                                            <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden"><div className="bg-blue-400 h-full" style={{ width: `${percent}%` }}></div></div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            const renderAllCustomersModal = () => {
+                if (!showAllCustomersModal) return null;
+                const allCustomers = analytics?.topCustomers || [];
+                const filtered = allCustomers.filter(c => c.userName && c.userName.toLowerCase().includes(searchCustomer.toLowerCase()));
+                return (
+                    <div className="fixed inset-0 z-[100] bg-black/50 flex flex-col justify-end items-center no-print">
+                        <div className="bg-white rounded-t-2xl w-full max-w-[600px] max-h-[90vh] flex flex-col animate-slide-up shadow-2xl">
+                            <div className="px-4 py-3 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-2xl z-10 shrink-0">
+                                <h2 className="font-bold text-base flex items-center gap-2"><Icons.Award className="w-5 h-5 text-yellow-500" />顧客ランキング全件</h2>
+                                <button type="button" onClick={() => {setShowAllCustomersModal(false); setSearchCustomer("");}} className="p-1.5 bg-gray-100 rounded-full active:bg-gray-200"><Icons.X className="w-5 h-5" /></button>
+                            </div>
+                            <div className="p-4 border-b bg-gray-50 shrink-0">
+                                <input type="text" placeholder="お客様の名前で検索..." value={searchCustomer} onChange={(e) => setSearchCustomer(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-nanairo-dark" />
+                            </div>
+                            <div className="overflow-y-auto p-4 pb-10 space-y-2">
+                                {filtered.length === 0 ? <p className="text-center text-sm text-gray-500 py-4">該当するお客様が見つかりません</p> : (
+                                    filtered.map((customer, idx) => {
+                                        const rank = allCustomers.findIndex(c => c.userId === customer.userId) + 1;
+                                        return (
+                                            <div key={customer.userId || idx} role="button" tabIndex={0} onClick={() => {setShowAllCustomersModal(false); setShowCustomerModal(customer);}} className="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-200 cursor-pointer active:bg-gray-50 shadow-sm transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-gray-200 text-gray-600">{rank}</div>
+                                                    <div><div className="font-bold text-sm text-gray-800">{customer.userName} 様</div><div className="text-[10px] text-gray-500">注文回数: {customer.orderCount}回</div></div>
+                                                </div>
+                                                <div className="font-bold text-nanairo-dark">¥{Number(customer.totalSpend || 0).toLocaleString()}</div>
+                                            </div>
+                                        )
+                                    })
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            return (
+                <div className="app-container">
+                    <header className="no-print sticky top-0 z-30 bg-nanairo-light px-4 py-3 flex justify-between items-center shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 bg-line rounded-full flex items-center justify-center text-white font-bold text-[9px] tracking-tighter">LINE</div>
+                            <span className="font-bold text-gray-800 text-sm">マイクロハーブ <span className="text-nanairo-dark text-xs ml-1">[管理]</span></span>
+                        </div>
+                    </header>
+
+                    {message && (
+                        <div className="no-print pointer-events-none fixed top-16 left-0 right-0 mx-auto w-11/12 max-w-[500px] z-[90] bg-nanairo-light border border-nanairo text-nanairo-dark px-4 py-3 rounded-xl flex items-center gap-2 animate-slide-up shadow-lg">
+                            <Icons.Check className="w-5 h-5 shrink-0" />
+                            <span className="font-bold text-sm">{message}</span>
+                        </div>
+                    )}
+
+                    <main className="no-print flex-1 px-4 pt-4 pb-[120px] relative z-0">
+                        {activeTab === 'orders' && renderOrdersTab()}
+                        {activeTab === 'inventory' && renderInventoryTab()}
+                        {activeTab === 'agency' && renderAgencyTab()}
+                        {activeTab === 'analytics' && renderAnalyticsTab()}
+                    </main>
+
+                    {renderPrintView()}
+                    {renderCustomerModal()}
+                    {renderAllProductsModal()}
+                    {renderAllCustomersModal()}
+
+                    <div className="no-print fixed bottom-0 left-0 right-0 mx-auto w-full max-w-[600px] bg-white border-t border-gray-200 flex h-[76px] z-40 pb-[env(safe-area-inset-bottom)] box-border">
+                        <button type="button" onClick={() => setActiveTab('orders')} className={`flex-1 flex flex-col items-center justify-center gap-1.5 ${activeTab === 'orders' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
+                            <div className="relative">
+                                <Icons.ClipboardList className="w-6 h-6" />
+                                {orders.filter(o=>o.status==='未対応').length > 0 && (
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+                                )}
+                            </div>
+                            <span className="text-[11px] font-bold">注文対応</span>
+                        </button>
+                        <button type="button" onClick={() => setActiveTab('inventory')} className={`flex-1 flex flex-col items-center justify-center gap-1.5 ${activeTab === 'inventory' ? 'text-nanairo-dark' : 'text-gray-400'}`}>
+                            <Icons.Box className="w-6 h-6" />
+                            <span className="text-[11px] font-bold">在庫・販売</span>
+                        </button>
+                        <button type="button" onClick={() => setActiveTab('agency')} className={`flex-1 flex flex-col items-center justify-center gap-1.5 ${activeTab === 'agency' ? 'text-agency' : 'text-gray-400'}`}>
+                            <div className="relative">
+                                <Icons.Store className="w-6 h-6" />
+                                {agencyDeliveries && agencyDeliveries.filter(d => d.status === "納品済").length > 0 && (
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-agency rounded-full border-2 border-white"></div>
+                                )}
+                            </div>
+                            <span className="text-[11px] font-bold">委託(卸し)</span>
+                        </button>
+                        <button type="button" onClick={() => setActiveTab('analytics')} className={`flex-1 flex flex-col items-center justify-center gap-1.5 ${activeTab === 'analytics' ? 'text-blue-600' : 'text-gray-400'}`}>
+                            <Icons.TrendingUp className="w-6 h-6" />
+                            <span className="text-[11px] font-bold">分析</span>
+                        </button>
+                    </div>
+
+                    {showBulkLossModal && (
+                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in no-print">
+                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
+                                <div className="flex flex-col items-center text-center mb-4">
+                                    <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3"><Icons.AlertTriangle className="w-7 h-7" /></div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-1">在庫を一括ロスしますか？</h3>
+                                    <p className="text-xs text-gray-500">現在在庫が残っているすべての商品の在庫を「0」にし、一括でロス（破棄）として記録します。<br/><span className="text-red-500 mt-1 inline-block">この操作は一度に多数のデータを更新します。</span></p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => setShowBulkLossModal(false)} disabled={isBulkSubmitting} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">キャンセル</button>
+                                    <button type="button" onClick={handleBulkLoss} disabled={isBulkSubmitting} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl active:bg-red-600 flex justify-center items-center gap-2">{isBulkSubmitting ? <div className="spinner border-l-white w-4 h-4"></div> : '一括ロス実行'}</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {cancelTargetLog && (
+                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in no-print">
+                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
+                                <div className="flex flex-col items-center text-center mb-4">
+                                    <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3"><Icons.AlertTriangle className="w-7 h-7" /></div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-1">この記録を取り消しますか？</h3>
+                                    <p className="text-xs text-gray-500">在庫数は自動的に元に戻ります。<br/>店頭販売の場合は売上からも除外されます。</p>
+                                </div>
+                                <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 font-bold border border-gray-200 mb-5 text-center">{cancelTargetLog.type}：{cancelTargetLog.name} {cancelTargetLog.amount}P</div>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => setCancelTargetLog(null)} disabled={isCancelling} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">閉じる</button>
+                                    <button type="button" onClick={handleCancelStockLog} disabled={isCancelling} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl active:bg-red-600 flex justify-center items-center gap-2">{isCancelling ? <div className="spinner border-l-white w-4 h-4"></div> : '取り消す'}</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {cancelDeliveryTarget && (
+                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in no-print">
+                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
+                                <div className="flex flex-col items-center text-center mb-4">
+                                    <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3"><Icons.X className="w-7 h-7" /></div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-1">納品を取り消しますか？</h3>
+                                    <p className="text-xs text-gray-500">商品はシステム在庫に戻ります。<br/>※すでに精算されている場合は取り消せません。</p>
+                                </div>
+                                <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 font-bold border border-gray-200 mb-5 text-center">
+                                    <div className="text-xs text-gray-500 mb-1">{cancelDeliveryTarget.agencyName}</div>
+                                    {cancelDeliveryTarget.productName} ({cancelDeliveryTarget.deliveryQty}P)
+                                </div>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => setCancelDeliveryTarget(null)} disabled={isCancelling} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">閉じる</button>
+                                    <button type="button" onClick={handleCancelAgencyDelivery} disabled={isCancelling} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl active:bg-red-600 flex justify-center items-center gap-2">{isCancelling ? <div className="spinner border-l-white w-4 h-4"></div> : '取り消す'}</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {cancelInventoryTarget && (
+                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in no-print">
+                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
+                                <div className="flex flex-col items-center text-center mb-4">
+                                    <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3"><Icons.X className="w-7 h-7" /></div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-1">精算を取り消しますか？</h3>
+                                    <p className="text-xs text-gray-500">未精算の状態に戻ります。<br/>売上から除外され、回収したロスも元に戻ります。</p>
+                                </div>
+                                <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 font-bold border border-gray-200 mb-5 text-center">
+                                    <div className="text-xs text-gray-500 mb-1">{cancelInventoryTarget.agencyName}</div>
+                                    {cancelInventoryTarget.productName}
+                                </div>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => setCancelInventoryTarget(null)} disabled={isCancelling} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">閉じる</button>
+                                    <button type="button" onClick={handleCancelAgencyInventory} disabled={isCancelling} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl active:bg-red-600 flex justify-center items-center gap-2">{isCancelling ? <div className="spinner border-l-white w-4 h-4"></div> : '取り消す'}</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {inventoryModal && (
+                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in no-print">
+                            <div className="bg-white rounded-2xl w-full max-w-[320px] p-5 shadow-xl animate-slide-up">
+                                <div className="mb-4">
+                                    <h3 className="text-lg font-bold text-gray-900 mb-1">棚卸し入力</h3>
+                                    <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{inventoryModal.agencyName}<br/><span className="font-bold text-black">{inventoryModal.productName}</span> (納品数: {inventoryModal.deliveryQty})</p>
+                                </div>
+                                <div className="space-y-4 mb-6">
+                                    <div>
+                                        <label className="block text-sm font-bold text-blue-600 mb-1">売れた数 (実売数)</label>
+                                        <div className="flex items-center border-2 border-blue-200 rounded-xl bg-blue-50 h-12 overflow-hidden">
+                                            <button type="button" onClick={() => { const next = Math.max(0, invSalesQty - 1); setInvSalesQty(next); setInvLossQty(inventoryModal.deliveryQty - next); }} className="w-12 h-full flex justify-center items-center text-blue-600 bg-blue-100 active:bg-blue-200"><Icons.Minus className="w-4 h-4" /></button>
+                                            <div className="flex-1 text-center font-bold text-lg text-blue-900 pt-1">{invSalesQty}</div>
+                                            <button type="button" onClick={() => { const next = Math.min(inventoryModal.deliveryQty, invSalesQty + 1); setInvSalesQty(next); setInvLossQty(inventoryModal.deliveryQty - next); }} className="w-12 h-full flex justify-center items-center text-blue-600 bg-blue-100 active:bg-blue-200"><Icons.Plus className="w-4 h-4" /></button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-red-600 mb-1">回収した数 (ロス)</label>
+                                        <div className="flex items-center border-2 border-red-200 rounded-xl bg-red-50 h-12 overflow-hidden">
+                                            <button type="button" onClick={() => { const next = Math.max(0, invLossQty - 1); setInvLossQty(next); setInvSalesQty(inventoryModal.deliveryQty - next); }} className="w-12 h-full flex justify-center items-center text-red-600 bg-red-100 active:bg-red-200"><Icons.Minus className="w-4 h-4" /></button>
+                                            <div className="flex-1 text-center font-bold text-lg text-red-900 pt-1">{invLossQty}</div>
+                                            <button type="button" onClick={() => { const next = Math.min(inventoryModal.deliveryQty, invLossQty + 1); setInvLossQty(next); setInvSalesQty(inventoryModal.deliveryQty - next); }} className="w-12 h-full flex justify-center items-center text-red-600 bg-red-100 active:bg-red-200"><Icons.Plus className="w-4 h-4" /></button>
+                                        </div>
+                                    </div>
+                                    <div className="text-center text-xs font-bold text-gray-500 bg-gray-100 p-2 rounded">
+                                        合計: {invSalesQty + invLossQty} / 納品数: {inventoryModal.deliveryQty}
+                                        {invSalesQty + invLossQty !== inventoryModal.deliveryQty && <span className="block text-red-500 mt-1">※合計が納品数と一致しません</span>}
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => setInventoryModal(null)} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl active:bg-gray-200">キャンセル</button>
+                                    <button type="button" onClick={handleAgencyInventory} disabled={isSubmittingDelivery || (invSalesQty + invLossQty !== inventoryModal.deliveryQty)} className={`flex-1 font-bold py-3 rounded-xl flex justify-center items-center gap-2 ${isSubmittingDelivery || (invSalesQty + invLossQty !== inventoryModal.deliveryQty) ? 'bg-gray-300 text-gray-500' : 'bg-agency text-white active:bg-orange-600'}`}>{isSubmittingDelivery ? <div className="spinner border-l-white w-4 h-4"></div> : '精算確定'}</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
