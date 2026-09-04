@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>【管理者用】なないろ菜 ダッシュボード</title>
     
+    <link rel="apple-touch-icon" href="https://i.imgur.com/tqZC8OZ.png">
     <link rel="icon" type="image/png" href="https://i.imgur.com/tqZC8OZ.png">
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -90,7 +91,8 @@
             Store: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12v0a2 2 0 0 1-2-2V7"/></svg>,
             PieChartIcon: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>,
             BarChartIcon: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>,
-            LineChartIcon: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            LineChartIcon: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>,
+            History: ({className}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
         };
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwv2XISbajDhH03WIIvr9-Br87CGaQcVYKtzk6flCluhncE6rfxlKS0fTN0vdbV5k-H9Q/exec"; 
@@ -394,7 +396,6 @@
                 finally { setIsCancelling(false); setCancelInventoryTarget(null); }
             };
 
-            // ローディング画面
             if (isLoadingData) {
                 return (
                     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-500">
@@ -517,7 +518,6 @@
                     );
                 }
 
-                // 通常の直販用 Invoice / Receipt
                 return (
                     <div className="fixed inset-0 z-[100] bg-gray-100 flex flex-col print-area h-screen overflow-y-auto">
                         <div className="no-print bg-white shadow-md p-4 flex flex-col sm:flex-row justify-between items-center gap-3 sticky top-0 z-10 border-b border-gray-200">
@@ -887,19 +887,20 @@
                 const anData = analytics || {};
                 const topProducts = anData.topProducts || [];
                 const topCustomers = anData.topCustomers || [];
+                const stockStats = anData.stockStats || [];
 
                 // 直販と委託の比率データ計算
                 const pieRatioData = useMemo(() => {
                     let directTotal = 0;
                     orders.forEach(o => {
-                        if(o.status !== 'キャンセル' && o.pickupDate >= `${viewStartMonth}-01` && o.pickupDate <= `${viewEndMonth}-31`) {
+                        if(o.status !== 'キャンセル' && o.pickupDate && o.pickupDate >= `${viewStartMonth}-01` && o.pickupDate <= `${viewEndMonth}-31`) {
                             directTotal += o.totalPrice || 0;
                         }
                     });
                     
                     let agencyTotal = 0;
                     agencyDeliveries.forEach(d => {
-                        if(d.status === '精算済' && d.date >= `${viewStartMonth}-01` && d.date <= `${viewEndMonth}-31`) {
+                        if(d.status === '精算済' && d.date && d.date >= `${viewStartMonth}-01` && d.date <= `${viewEndMonth}-31`) {
                             agencyTotal += Math.floor((d.pureSalesExTax || 0) * 1.08);
                         }
                     });
@@ -1030,6 +1031,33 @@
                                         </ResponsiveContainer>
                                     ) : <div className="h-full flex items-center justify-center text-sm text-gray-400">データがありません</div>
                                 ) : null}
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mt-5">
+                            <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2"><Icons.AlertTriangle className="w-4 h-4 text-orange-500"/> 商品別 ロス率</h3>
+                            <p className="text-[10px] text-gray-500 mb-3">指定期間内の「収穫量」に対する「破棄量」の割合です。</p>
+                            <div className="space-y-3">
+                                {stockStats && stockStats.length > 0 ? (
+                                    stockStats.map((stat, idx) => {
+                                        const barColor = stat.lossRate > 30 ? 'bg-red-500' : stat.lossRate > 10 ? 'bg-orange-400' : 'bg-green-500';
+                                        return (
+                                            <div key={idx}>
+                                                <div className="flex justify-between items-end mb-1">
+                                                    <div className="text-sm font-bold text-gray-800">{stat.name}</div>
+                                                    <div className="text-xs text-gray-600">
+                                                        <span className="font-bold text-red-600">{stat.lossRate}%</span> <span className="text-[10px]">(ロス{stat.lossQty} / 収穫{stat.harvestQty})</span>
+                                                    </div>
+                                                </div>
+                                                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                                    <div className={`${barColor} h-full transition-all duration-1000`} style={{ width: `${stat.lossRate}%` }}></div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                                ) : (
+                                    <p className="text-sm text-gray-500 text-center py-4">データがありません</p>
+                                )}
                             </div>
                         </div>
 
@@ -1173,10 +1201,8 @@
                         {activeTab === 'inventory' && renderInventoryTab()}
                         {activeTab === 'agency' && renderAgencyTab()}
                         {activeTab === 'analytics' && renderAnalyticsTab()}
-                        {/* 印刷ハブのタブは非表示にしました */}
                     </main>
 
-                    {/* モーダル群 (メインエリア外で管理) */}
                     {renderPrintView()}
                     {renderCustomerModal()}
                     {renderAllProductsModal()}
